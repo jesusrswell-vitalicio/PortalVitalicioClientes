@@ -11,7 +11,7 @@ const ADMIN_EMAIL = 'jmartinez@grupovitalicio.es';
 const ADMIN_PASS_INITIAL = 'Vitalicio@2020';
 
 const PRIVACY_POLICY_TEXT = `
-Mediante el presente aviso legal y política de privacidad, GRUPO VITALICIO con domicilio social en CALLE ZURBANO 45, 1ª PLANTA, 28010 DE MADRID, informa a los usuarios del sitio webs grupovitalicio.es, Crm.grupovitalicio.es, y este portal de clientes, de su Política de Privacidad, y describe qué datos recoge, cómo los utiliza, las opciones de los usuarios en relación a estos datos, sus derechos (conocidos como derechos ARCO, Acceso, Rectificación, Cancelación y Oposición y los nuevos introducidos por el RGPD, derecho al olvido, derecho al olvido, derecho a la portabilidad de los datos personales y el derecho a la limitación en el tratamiento), la seguridad de sus datos, y la modificación de la política de confidencialidad.
+Mediante el presente aviso legal y política de privacidad, GRUPO VITALICIO con domicilio social en CALLE ZURBANO 45, 1ª PLANTA, 28010 DE MADRID, informa a los usuarios del sitio webs grupovitalicio.es, Crm.grupovitalicio.es, y este portal de clientes, de su Política de Privacidad, y describe qué datos recoge, cómo los utiliza, las opciones de los usuarios en relación a estos datos, sus derechos (conocidos como derechos ARCO, Acceso, Rectificación, Cancelación y Oposición y los nuevos introducidos por el RGPD, derecho al olvido, derecho a la portabilidad de los datos personales y el derecho a la limitación en el tratamiento), la seguridad de sus datos, y la modificación de la política de confidencialidad.
 
 La utilización del sitio web de GRUPO VITALICIO y de cualquiera de los servicios que se incorporan en él, supone la plena aceptación de las condiciones que se presentan a continuación Política de Privacidad.
 
@@ -58,7 +58,7 @@ GRUPO VITALICIO VIVIENDA INVERSIONES S.L. C/ ZURBANO 45, 1ª PLANTA – 28010 MA
 
 const INITIAL_USERS: User[] = [
   { id: 'admin_1', name: 'J. Martínez', email: ADMIN_EMAIL, role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: '', privacySigned: true },
-  { id: 'v_1', name: 'Antonio García', email: 'antonio@gmail.com', role: UserRole.SELLER, status: 'ACTIVE', driveFolderPath: 'Mi Unidad/VendedoresExternos/Antonio García', privacySigned: false }
+  { id: 'v_1', name: 'Antonio García', email: 'antonio@gmail.com', role: UserRole.SELLER, status: 'ACTIVE', driveFolderPath: '', privacySigned: false }
 ];
 
 const INITIAL_PASSWORDS: Record<string, string> = {
@@ -67,7 +67,7 @@ const INITIAL_PASSWORDS: Record<string, string> = {
 };
 
 const INITIAL_DOCS: Document[] = [
-  { id: 'd1', name: 'Contrato Vitalicio Antonio', type: 'CONTRACT', url: '', status: 'PENDING', uploadDate: '20/05/2024', ownerId: 'v_1', folderPath: 'Mi Unidad/VendedoresExternos/Antonio García' },
+  { id: 'd1', name: 'Contrato Vitalicio Antonio', type: 'CONTRACT', url: '', status: 'PENDING', uploadDate: '20/05/2024', ownerId: 'v_1', folderPath: '' },
 ];
 
 const DrivePickerModal: React.FC<{ 
@@ -209,6 +209,95 @@ const AuditModal: React.FC<{ logs: LogEntry[], onCancel: () => void }> = ({ logs
   );
 };
 
+const CommentsSection: React.FC<{ 
+  sellerId: string, 
+  comments: Comment[], 
+  user: User, 
+  onAddComment: (text: string, sellerId: string) => void 
+}> = ({ sellerId, comments, user, onAddComment }) => {
+  const [localText, setLocalText] = useState('');
+  const sellerComments = comments.filter(c => c.sellerId === sellerId);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!localText.trim()) return;
+    onAddComment(localText, sellerId);
+    setLocalText('');
+  };
+
+  return (
+    <div className="bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100">
+      <h3 className="text-xl font-bold text-[#a12d34] mb-6 flex items-center gap-2">
+        <span>💬</span> Bitácora del Expediente
+      </h3>
+      <div className="space-y-4 max-h-60 overflow-y-auto mb-6 pr-2">
+        {sellerComments.length === 0 ? (
+          <p className="text-gray-400 text-sm italic text-center py-4">No hay notas registradas.</p>
+        ) : (
+          sellerComments.map(c => (
+            <div key={c.id} className="bg-slate-50 p-4 rounded-2xl border-l-4 border-[#C5A059] animate-fadeIn">
+              <div className="flex justify-between items-start mb-1">
+                <span className="font-bold text-[#a12d34] text-sm">{c.authorName}</span>
+                <span className="text-[10px] text-gray-400 font-bold">{c.timestamp}</span>
+              </div>
+              <p className="text-sm text-gray-600">{c.text}</p>
+            </div>
+          ))
+        )}
+      </div>
+      <form onSubmit={handleSubmit} className="flex gap-3">
+        <input 
+          type="text" 
+          value={localText} 
+          onChange={e => setLocalText(e.target.value)} 
+          className={`${UI_CONFIG.inputClass} text-sm py-3`} 
+          placeholder="Añadir nota al expediente..." 
+          required 
+        />
+        <button type="submit" className="bg-[#a12d34] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95">
+          Publicar
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const ActivityLog: React.FC<{ sellerId: string, logs: LogEntry[] }> = ({ sellerId, logs }) => {
+  const sellerLogs = logs.filter(l => l.sellerId === sellerId).reverse();
+  return (
+    <div className="bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100 mt-6">
+      <h3 className="text-xl font-bold text-[#a12d34] mb-6 flex items-center gap-2">
+        <span>📋</span> Historial de Actividad
+      </h3>
+      <div className="space-y-3 max-h-64 overflow-y-auto pr-2 text-xs">
+        {sellerLogs.length === 0 ? (
+          <p className="text-gray-400 italic text-center py-4">Sin actividad reciente.</p>
+        ) : (
+          sellerLogs.map(l => (
+            <div key={l.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="text-lg">
+                {l.action === 'UPLOAD' && '📤'}
+                {l.action === 'DELETE' && '🗑️'}
+                {l.action === 'SIGNATURE' && '✍️'}
+                {l.action === 'PRIVACY_ACCEPTANCE' && '⚖️'}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-700">
+                  {l.action === 'UPLOAD' ? 'Subida' : 
+                   l.action === 'DELETE' ? 'Eliminación' : 
+                   l.action === 'SIGNATURE' ? 'Firma Documento' : 
+                   'Aceptación Política Privacidad'}: {l.fileName}
+                </p>
+                <p className="text-gray-400 font-medium">{l.authorName} • {l.timestamp}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
@@ -303,15 +392,6 @@ const App: React.FC = () => {
     alert(`Portal configurado correctamente en: ${path}`);
   };
 
-  const handleOpenDriveFolder = (path: string | undefined) => {
-    if (!path) {
-      alert("No hay una ruta de Drive asignada a este expediente.");
-      return;
-    }
-    const url = driveService.getFolderViewUrl(path);
-    window.open(url, '_blank', 'width=1024,height=768,menubar=no,toolbar=no,location=no');
-  };
-
   const addLog = (sellerId: string, action: LogEntry['action'], fileName: string) => {
     const newLog: LogEntry = {
       id: 'l_' + Date.now(),
@@ -363,7 +443,6 @@ const App: React.FC = () => {
     }
     setIsProcessing(true);
     try {
-      // Se crea la subcarpeta con el nombre y apellidos del vendedor dentro de la raíz
       const drivePath = await driveService.createSellerFolder(newSellerName, mainDriveFolder);
       const newId = 'v_' + Date.now();
       const newUser: User = {
@@ -381,7 +460,7 @@ const App: React.FC = () => {
       setNewSellerName('');
       setNewSellerEmail('');
       setNewSellerPass('');
-      alert(`Vendedor creado. Carpeta asignada en: ${drivePath}`);
+      alert('Vendedor creado y carpeta sincronizada en Drive.');
     } finally {
       setIsProcessing(false);
     }
@@ -416,11 +495,12 @@ const App: React.FC = () => {
     setAllUsers(updatedUsers);
     setUser({ ...user, privacySigned: true, dni: userDniInput });
     
+    // Crear el documento "Contrato de Privacidad Firmado"
     const privacyDoc: Document = {
         id: 'privacy_' + user.id,
         name: 'Política_Privacidad_Firmada.pdf',
         type: 'CONTRACT',
-        url: signatureUrl,
+        url: signatureUrl, // Guardamos la firma como URL del documento para el visor
         status: 'SIGNED',
         uploadDate: new Date().toLocaleDateString('es-ES'),
         ownerId: user.id,
@@ -479,11 +559,78 @@ const App: React.FC = () => {
     addLog(doc.ownerId, 'DELETE', doc.name);
   };
 
+  const generateContractHTML = (doc: Document, owner: User) => {
+      return `
+                <html>
+                <head>
+                    <title>${doc.name}</title>
+                    <style>
+                        body { font-family: 'Open Sans', sans-serif; padding: 60px; line-height: 1.6; color: #333; max-width: 800px; margin: auto; border: 1px solid #eee; background-color: #fff; }
+                        h1 { color: #a12d34; border-bottom: 2px solid #a12d34; padding-bottom: 10px; text-align: center; }
+                        .info-box { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #ddd; }
+                        .info-item { margin-bottom: 5px; }
+                        .legal-text { font-size: 11px; color: #444; white-space: pre-line; border: 1px solid #eee; padding: 20px; background: #fff; margin-bottom: 40px; text-align: justify; }
+                        .signature-container { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 60px; }
+                        .signature-box { border-bottom: 2px solid #000; width: 320px; text-align: center; padding-bottom: 10px; }
+                        .signature-img { width: 280px; max-height: 120px; object-fit: contain; }
+                        @media print {
+                            body { border: none; padding: 0; }
+                            .legal-text { height: auto; border: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Grupo Vitalicio - Política de Privacidad Firmada</h1>
+                    
+                    <div class="info-box">
+                        <div class="info-item"><strong>Nombre Completo:</strong> ${owner.name}</div>
+                        <div class="info-item"><strong>DNI / Pasaporte:</strong> ${owner.dni || 'N/A'}</div>
+                        <div class="info-item"><strong>Email Corporativo:</strong> ${owner.email}</div>
+                        <div class="info-item"><strong>Fecha y Hora de Firma:</strong> ${doc.uploadDate}</div>
+                    </div>
+
+                    <h3>Declaración de Conformidad:</h3>
+                    <div class="legal-text">${PRIVACY_POLICY_TEXT}</div>
+
+                    <div class="signature-container">
+                        <div class="signature-box">
+                            <img src="${doc.url}" class="signature-img" /><br/>
+                            <strong>Firma del Colaborador Externo</strong>
+                        </div>
+                        <div style="text-align: right;">
+                             <img src="https://grupovitalicio.es/wp-content/uploads/2021/04/cropped-Logo-Vitalicio-1.png" style="height: 45px; margin-bottom: 10px;" /><br/>
+                             <small>Documento Generado Automáticamente<br/>Sistema de Gestión de Grupo Vitalicio</small>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+  }
+
   const handleDownloadDoc = (doc: Document) => {
     if (!doc.url) {
         alert("El archivo no tiene una URL válida para descargar.");
         return;
     }
+
+    if (doc.type === 'CONTRACT' && doc.id.startsWith('privacy_')) {
+        const owner = allUsers.find(u => u.id === doc.ownerId);
+        if (!owner) return;
+        
+        const htmlContent = generateContractHTML(doc, owner);
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = doc.name.replace('.pdf', '') + '.html'; 
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        return;
+    }
+
     const link = document.createElement('a');
     link.href = doc.url;
     link.download = doc.name;
@@ -493,18 +640,68 @@ const App: React.FC = () => {
   };
 
   const handleViewDoc = (doc: Document) => {
+    const docOwner = allUsers.find(u => u.id === doc.ownerId);
+
+    if (doc.type === 'CONTRACT' && doc.id.startsWith('privacy_')) {
+        const win = window.open("", "_blank");
+        if (win && docOwner) {
+            win.document.write(generateContractHTML(doc, docOwner));
+            win.document.close();
+        }
+        return;
+    }
+
     if (doc.url.startsWith('data:')) {
         const win = window.open();
         if (win) {
             if (doc.type === 'IMAGE') {
                 win.document.write(`<img src="${doc.url}" style="max-width:100%; height:auto;">`);
-            } else {
-                win.document.write(`<iframe src="${doc.url}" frameborder="0" style="border:0; width:100%; height:100%;" allowfullscreen></iframe>`);
+            } else if (doc.type === 'PDF') {
+                win.document.write(`<iframe src="${doc.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
             }
         }
     } else {
         window.open(doc.url, '_blank');
     }
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassMessage({ text: '', type: '' });
+
+    if (!user) return;
+
+    const isAdminReset = user.role === UserRole.ADMIN && selectedSellerId;
+    const targetUser = isAdminReset 
+      ? allUsers.find(u => u.id === selectedSellerId) 
+      : user;
+
+    if (!targetUser) return;
+
+    if (!isAdminReset && userPasswords[user.email] !== passCurrent) {
+      setPassMessage({ text: 'La contraseña actual es incorrecta.', type: 'error' });
+      return;
+    }
+
+    if (passNew !== passConfirm) {
+      setPassMessage({ text: 'Las nuevas contraseñas no coinciden.', type: 'error' });
+      return;
+    }
+
+    if (passNew.length < 6) {
+      setPassMessage({ text: 'La nueva contraseña debe tener al menos 6 caracteres.', type: 'error' });
+      return;
+    }
+
+    setUserPasswords(prev => ({ ...prev, [targetUser.email]: passNew }));
+    setPassMessage({ 
+      text: isAdminReset ? `¡Contraseña de ${targetUser.name} actualizada!` : '¡Contraseña actualizada con éxito!', 
+      type: 'success' 
+    });
+    
+    setPassCurrent('');
+    setPassNew('');
+    setPassConfirm('');
   };
 
   const currentViewId = selectedSellerId || (user?.role === UserRole.SELLER ? user.id : null);
@@ -520,10 +717,11 @@ const App: React.FC = () => {
              <h2 className="text-2xl font-bold text-[#a12d34]">Política de Privacidad Obligatoria</h2>
              <button onClick={handleLogout} className="text-red-500 font-bold">Cerrar Sesión</button>
           </div>
-          <div className="flex-1 overflow-y-auto p-10 space-y-6 text-sm text-gray-700">
+          <div className="flex-1 overflow-y-auto p-10 space-y-6 text-sm leading-relaxed text-gray-700 font-medium">
             <div className="whitespace-pre-line bg-slate-50 p-6 rounded-2xl border border-slate-200">
                 {PRIVACY_POLICY_TEXT}
             </div>
+            
             <div className="pt-6 border-t">
                <h3 className="text-lg font-bold text-[#a12d34] mb-4">Identificación del Firmante</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -574,7 +772,11 @@ const App: React.FC = () => {
             <p className="mt-2 opacity-80 uppercase text-[10px] tracking-widest font-bold">Portal de Colaboradores</p>
           </div>
           <form onSubmit={handleLogin} className="p-10 space-y-6">
-            {loginError && <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold border-l-4 border-red-500">{loginError}</div>}
+            {loginError && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold border-l-4 border-red-500 animate-fadeIn">
+                {loginError}
+              </div>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Email Corporativo</label>
@@ -587,12 +789,12 @@ const App: React.FC = () => {
               <div className="pt-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Código de Seguridad</label>
                 <div className="flex items-center gap-4 mt-1">
-                   <div className="bg-slate-100 px-5 py-3 rounded-xl border font-bold text-[#a12d34] tracking-widest text-2xl italic select-none">{captchaValue}</div>
+                   <div className="bg-slate-100 px-5 py-3 rounded-xl border font-bold text-[#a12d34] tracking-widest text-2xl italic select-none shadow-inner">{captchaValue}</div>
                    <input type="text" value={userCaptchaInput} onChange={e => setUserCaptchaInput(e.target.value)} placeholder="0000" className={`${UI_CONFIG.inputClass} flex-1 text-center font-mono`} maxLength={4} required />
                 </div>
               </div>
             </div>
-            <button type="submit" className="w-full bg-[#a12d34] text-white py-5 rounded-2xl font-bold text-xl shadow-xl transition-all active:scale-95">Acceder</button>
+            <button type="submit" className="w-full bg-[#a12d34] text-white py-5 rounded-2xl font-bold text-xl shadow-xl transition-all active:scale-95 hover:bg-[#8e272d]">Acceder</button>
           </form>
         </div>
       </div>
@@ -618,36 +820,79 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          {/* Banner de configuración Drive si no está conectado */}
           {!isDriveConnected || !mainDriveFolder ? (
-            <div className="bg-blue-50 border-2 border-blue-200 p-10 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 shadow-xl">
-              <div className="w-24 h-24 bg-[#4285F4] text-white rounded-[2rem] flex items-center justify-center text-4xl">📂</div>
+            <div className="bg-blue-50 border-2 border-blue-200 p-10 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 shadow-xl animate-scaleIn">
+              <div className="w-24 h-24 bg-[#4285F4] text-white rounded-[2rem] flex items-center justify-center text-4xl shadow-lg">
+                📂
+              </div>
               <div className="flex-1 text-center md:text-left">
                 <h3 className="text-2xl font-bold text-blue-800">Conectar con Google Drive</h3>
                 <p className="text-sm text-blue-600 font-medium mt-1 leading-relaxed">
-                  Debe vincular la cuenta <b>sguillen@grupovitalicio.es</b> y seleccionar la carpeta raíz.
+                  Para empezar a trabajar, debe vincular la cuenta oficial de <b>sguillen@grupovitalicio.es</b> y seleccionar la carpeta donde se almacenarán todos los expedientes de los vendedores.
                 </p>
               </div>
-              <button onClick={handleDriveConnection} disabled={driveSyncing} className="bg-[#4285F4] text-white px-10 py-5 rounded-2xl font-bold shadow-xl">
+              <button 
+                onClick={handleDriveConnection}
+                disabled={driveSyncing}
+                className="bg-[#4285F4] hover:bg-blue-600 text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-xl transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50"
+              >
                 {driveSyncing ? 'Conectando...' : 'Vincular Drive Now'}
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               <div className={UI_CONFIG.cardClass}>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-2xl">⚙️</span><h3 className="font-bold text-gray-800">Infraestructura</h3></div>
-                  <p className="text-xs text-gray-400">Raíz Drive: <span className="font-bold text-gray-600 block">{mainDriveFolder}</span></p>
-                  <button onClick={() => setShowDrivePicker(true)} className="mt-4 text-xs text-blue-500 font-bold underline">Cambiar Raíz</button>
-               </div>
-               <div className={UI_CONFIG.cardClass}>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-2xl">🛡️</span><h3 className="font-bold text-gray-800">Auditoría</h3></div>
-                  <button onClick={() => setShowAuditModal(true)} className="w-full py-2 bg-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider">Ver Auditoría Global</button>
-               </div>
-               <div className={UI_CONFIG.cardClass}>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-2xl">👥</span><h3 className="font-bold text-gray-800">Vendedores</h3></div>
-                  <p className="text-3xl font-bold text-[#a12d34]">{allUsers.filter(u => u.role === UserRole.SELLER).length}</p>
-               </div>
-            </div>
-          )}
+          ) : null}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className={UI_CONFIG.cardClass}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-xl">⚙️</div>
+                  <h3 className="font-bold text-gray-800">Infraestructura</h3>
+                </div>
+                <div className="space-y-4">
+                   <p className="text-xs text-gray-400">Raíz Drive: <span className="font-bold text-gray-600 block mt-1">{mainDriveFolder || 'SIN CONFIGURAR'}</span></p>
+                   <div className="flex items-center gap-2">
+                     <span className={`w-2 h-2 rounded-full animate-pulse ${isDriveConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                     <p className={`text-xs font-bold uppercase tracking-widest ${isDriveConnected ? 'text-green-600' : 'text-red-600'}`}>
+                        {isDriveConnected ? 'Drive Conectado' : 'Sin Conexión'}
+                     </p>
+                   </div>
+                   {isDriveConnected && (
+                     <button onClick={() => setShowDrivePicker(true)} className="text-[9px] text-blue-500 font-bold underline hover:text-blue-700">CAMBIAR DIRECTORIO RAÍZ</button>
+                   )}
+                </div>
+             </div>
+             
+             <div className={UI_CONFIG.cardClass}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-xl">📈</div>
+                  <h3 className="font-bold text-gray-800">Actividad Global</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="bg-slate-50 p-4 rounded-xl text-center">
+                      <p className="text-3xl font-bold text-[#a12d34]">{allUsers.filter(u => u.role === UserRole.SELLER).length}</p>
+                      <p className="text-[9px] uppercase font-bold text-gray-400 mt-1">Vendedores</p>
+                   </div>
+                   <div className="bg-slate-50 p-4 rounded-xl text-center">
+                      <p className="text-3xl font-bold text-[#C5A059]">{docs.length}</p>
+                      <p className="text-[9px] uppercase font-bold text-gray-400 mt-1">Archivos</p>
+                   </div>
+                </div>
+             </div>
+
+             <div className={`${UI_CONFIG.cardClass} md:col-span-2 lg:col-span-1`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-xl">🛡️</div>
+                  <h3 className="font-bold text-gray-800">Seguridad</h3>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed mb-4">Operaciones auditadas. El Administrador puede supervisar todos los documentos y firmas.</p>
+                <button 
+                  onClick={() => setShowAuditModal(true)}
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors"
+                >
+                  Ver Auditoría de Drive
+                </button>
+             </div>
+          </div>
         </div>
       )}
 
@@ -656,32 +901,53 @@ const App: React.FC = () => {
         <div className="space-y-8 animate-fadeIn">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <h2 className={UI_CONFIG.headingClass}>Colaboradores Externos</h2>
-            <button onClick={() => setShowAddSeller(true)} className="bg-[#C5A059] text-white px-8 py-3 rounded-2xl font-bold shadow-lg">
+            <button onClick={() => setShowAddSeller(true)} className="bg-[#C5A059] hover:bg-[#b08e4d] text-white px-8 py-3 rounded-2xl font-bold shadow-lg transition-all active:scale-95">
               + Nuevo Colaborador
             </button>
           </div>
+          
           <div className="grid grid-cols-1 gap-4">
-            {allUsers.filter(u => u.role === UserRole.SELLER && u.status === 'ACTIVE').map(s => (
-              <div key={s.id} className="bg-white p-6 rounded-[2.5rem] shadow-md border-l-8 border-[#a12d34] flex flex-wrap justify-between items-center">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-[#a12d34]">{s.name.charAt(0)}</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">{s.name}</h3>
-                    <p className="text-sm text-gray-500">{s.email}</p>
+            {allUsers.filter(u => u.role === UserRole.SELLER && u.status === 'ACTIVE').length === 0 ? (
+              <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-100">
+                 <span className="text-5xl block mb-4">👥</span>
+                 <p className="text-gray-400 font-bold">No hay vendedores registrados.</p>
+              </div>
+            ) : (
+              allUsers.filter(u => u.role === UserRole.SELLER && u.status === 'ACTIVE').map(s => (
+                <div key={s.id} className="bg-white p-6 rounded-[2.5rem] shadow-md border-l-8 border-[#a12d34] flex flex-wrap justify-between items-center hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-[#a12d34] shadow-sm">
+                       {s.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800">{s.name}</h3>
+                      <p className="text-sm text-gray-500">{s.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`w-2 h-2 rounded-full ${s.privacySigned ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                          {s.privacySigned ? `DNI: ${s.dni || 'PENDIENTE'}` : 'Pendiente de Firma'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3 mt-4 sm:mt-0">
                     <button 
-                      onClick={() => handleOpenDriveFolder(s.driveFolderPath)}
-                      className="text-[10px] text-blue-600 font-bold hover:underline mt-1"
+                      onClick={() => { setSelectedSellerId(s.id); setActiveTab('dashboard'); }} 
+                      className="px-6 py-3 bg-[#a12d34] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#8e272d] transition-colors"
                     >
-                      Carpeta: {s.driveFolderPath} ↗️
+                      Ver Expediente
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteSeller(s.id)} 
+                      className="p-3 bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all"
+                    >
+                      🗑️
                     </button>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => { setSelectedSellerId(s.id); setActiveTab('dashboard'); }} className="px-6 py-3 bg-[#a12d34] text-white rounded-xl font-bold text-xs">Ver Expediente</button>
-                  <button onClick={() => handleDeleteSeller(s.id)} className="p-3 text-red-300 hover:text-red-600">🗑️</button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
@@ -689,66 +955,303 @@ const App: React.FC = () => {
       {/* VISTA COMÚN: EXPEDIENTE (DASHBOARD / DOCS / PHOTOS) */}
       {(activeTab === 'dashboard' || activeTab === 'docs' || activeTab === 'photos' || activeTab === 'settings') && (
         <div className="space-y-8 animate-fadeIn">
-          <div className="flex justify-between items-center flex-wrap gap-4 border-b pb-6">
+          {/* Header de Expediente */}
+          <div className="flex justify-between items-center flex-wrap gap-4 border-b border-gray-100 pb-6">
             <div>
-              <h2 className="text-3xl font-bold text-gray-800">{currentViewUser?.name}</h2>
-              <button 
-                onClick={() => handleOpenDriveFolder(currentViewUser?.driveFolderPath)}
-                className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1"
-              >
-                <span>📂 {currentViewUser?.driveFolderPath || 'No asignada'}</span>
-                <span>↗️</span>
-              </button>
+              <div className="flex items-center gap-3">
+                 <h2 className="text-3xl font-bold text-gray-800">{currentViewUser?.name}</h2>
+                 <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Activo</span>
+              </div>
+              <p className="text-sm text-gray-400 mt-1 font-medium">
+                {activeTab === 'dashboard' && '🔍 Auditoría de Comentarios y Logs'}
+                {activeTab === 'docs' && '📄 Gestión de Documentación PDF'}
+                {activeTab === 'photos' && '📸 Galería Fotográfica de Activos'}
+                {activeTab === 'settings' && '⚙️ Configuración del Perfil'}
+              </p>
             </div>
-            {activeTab === 'docs' || activeTab === 'photos' ? (
-              <label className={`${UI_CONFIG.buttonClass} bg-[#a12d34] text-white cursor-pointer`}>
-                {isProcessing ? 'Sincronizando...' : `Subir ${activeTab === 'docs' ? 'Documento' : 'Foto'}`}
-                <input type="file" className="hidden" accept={activeTab === 'docs' ? '.pdf' : 'image/*'} onChange={e => handleFileUpload(e, activeTab === 'docs' ? 'PDF' : 'IMAGE')} disabled={isProcessing} />
-              </label>
-            ) : null}
+            
+            <div className="flex gap-3">
+               <div className="text-right hidden sm:block">
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Ruta Drive</p>
+                  <p className="text-[10px] text-[#a12d34] font-mono font-bold truncate max-w-[200px]">{currentViewUser?.driveFolderPath || 'PENDIENTE DE ASIGNACIÓN'}</p>
+               </div>
+            </div>
           </div>
 
+          {/* Sub-vista: Dashboard (Comentarios y Logs) */}
+          {activeTab === 'dashboard' && (
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <CommentsSection 
+                  sellerId={currentViewId || ''} 
+                  comments={comments} 
+                  user={user} 
+                  onAddComment={(text) => {
+                    const newC: Comment = { 
+                      id: 'c_'+Date.now(), 
+                      sellerId: currentViewId!, 
+                      authorName: user.name, 
+                      text, 
+                      timestamp: new Date().toLocaleString('es-ES') 
+                    };
+                    setComments(prev => [...prev, newC]);
+                  }} 
+                />
+                <ActivityLog sellerId={currentViewId || ''} logs={logs} />
+             </div>
+          )}
+
+          {/* Sub-vista: Documentos o Fotos */}
           {(activeTab === 'docs' || activeTab === 'photos') && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {currentDocs.filter(d => activeTab === 'docs' ? (d.type === 'PDF' || d.type === 'CONTRACT') : d.type === 'IMAGE').map(doc => (
-                <div key={doc.id} className="bg-white rounded-[2rem] overflow-hidden shadow-lg border group">
-                   <div className="h-48 bg-slate-100 flex items-center justify-center relative">
-                      {doc.type === 'IMAGE' ? <img src={doc.url} className="w-full h-full object-cover" /> : <span className="text-6xl">📕</span>}
-                      <button onClick={() => handleDeleteDoc(doc.id)} className="absolute top-2 right-2 w-8 h-8 bg-white/90 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
-                   </div>
-                   <div className="p-6">
-                      <p className="font-bold text-gray-800 truncate">{doc.name}</p>
-                      <div className="flex justify-between mt-4">
-                        <button onClick={() => handleViewDoc(doc)} className="text-[10px] font-bold text-[#a12d34] hover:underline uppercase">Ver 👁️</button>
-                        <button onClick={() => handleDownloadDoc(doc)} className="text-[10px] font-bold text-[#C5A059] hover:underline uppercase">Bajar 💾</button>
-                      </div>
-                   </div>
-                </div>
-              ))}
+            <div className="space-y-8">
+               {/* Zona de Subida */}
+               <div className="bg-white p-12 rounded-[3rem] shadow-xl border-4 border-dashed border-slate-100 flex flex-col items-center text-center group hover:border-[#a12d34]/20 transition-all">
+                  <div className="w-24 h-24 bg-slate-50 group-hover:bg-red-50 rounded-full flex items-center justify-center text-4xl mb-6 transition-colors">
+                     {activeTab === 'docs' ? '📄' : '📸'}
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    {activeTab === 'docs' ? 'Subir Documentación' : 'Añadir Fotos'}
+                  </h3>
+                  <p className="text-sm text-gray-400 max-w-sm mb-8">
+                    {activeTab === 'docs' 
+                      ? 'Formatos aceptados: PDF. El archivo se guardará directamente en la carpeta de Drive del vendedor.' 
+                      : 'Capture las fotos de la vivienda o suba archivos JPG/PNG. Se sincronizarán automáticamente.'}
+                  </p>
+                  
+                  <label className={`
+                    ${UI_CONFIG.buttonClass} bg-[#a12d34] text-white px-12 py-5 rounded-2xl text-xl cursor-pointer hover:shadow-2xl hover:-translate-y-1
+                    ${isProcessing ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
+                  `}>
+                     {isProcessing ? '🔄 Sincronizando con Drive...' : `Seleccionar ${activeTab === 'docs' ? 'PDF' : 'Imágenes'}`}
+                     <input 
+                       type="file" 
+                       className="hidden" 
+                       accept={activeTab === 'docs' ? '.pdf' : 'image/*'} 
+                       onChange={e => handleFileUpload(e, activeTab === 'docs' ? 'PDF' : 'IMAGE')} 
+                       disabled={isProcessing} 
+                       multiple={activeTab === 'photos'}
+                     />
+                  </label>
+               </div>
+
+               {/* Grid de Archivos */}
+               <div>
+                  <h4 className="text-lg font-bold text-gray-700 mb-6 flex items-center gap-2">
+                    <span>📂</span> {activeTab === 'docs' ? 'Documentos del Expediente' : 'Galería de Imágenes'}
+                  </h4>
+                  
+                  {currentDocs.filter(d => activeTab === 'docs' ? (d.type === 'PDF' || d.type === 'CONTRACT') : d.type === 'IMAGE').length === 0 ? (
+                    <div className="text-center py-16 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                       <p className="text-gray-400 font-bold italic">No hay archivos en esta categoría.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {currentDocs.filter(d => activeTab === 'docs' ? (d.type === 'PDF' || d.type === 'CONTRACT') : d.type === 'IMAGE').map(doc => (
+                        <div key={doc.id} className="bg-white rounded-[2rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all border border-gray-100 flex flex-col group">
+                           <div className="h-48 bg-slate-100 flex items-center justify-center relative overflow-hidden">
+                              {doc.type === 'IMAGE' && doc.url ? (
+                                <img src={doc.url} alt={doc.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              ) : (
+                                <span className="text-6xl group-hover:scale-125 transition-transform duration-300">
+                                    {doc.type === 'CONTRACT' ? '📜' : '📕'}
+                                </span>
+                              )}
+                              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 { (user.role === UserRole.ADMIN || user.id === doc.ownerId) && (
+                                     <button 
+                                      onClick={() => handleDeleteDoc(doc.id)} 
+                                      className="w-10 h-10 bg-white/90 text-red-500 rounded-full shadow-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                                     >
+                                        🗑️
+                                     </button>
+                                 )}
+                              </div>
+                           </div>
+                           <div className="p-6">
+                              <p className="font-bold text-gray-800 truncate" title={doc.name}>{doc.name}</p>
+                              <div className="flex flex-col gap-3 mt-4">
+                                 <span className="text-[10px] bg-slate-100 px-3 py-1 self-start rounded-full text-gray-500 font-bold uppercase tracking-wider">{doc.uploadDate}</span>
+                                 <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                     <button 
+                                        onClick={() => handleViewDoc(doc)}
+                                        className="text-[10px] font-bold text-[#a12d34] hover:underline uppercase tracking-widest"
+                                     >
+                                        Ver Online 👁️
+                                     </button>
+                                     <button 
+                                        onClick={() => handleDownloadDoc(doc)}
+                                        className="text-[10px] font-bold text-[#C5A059] hover:underline uppercase tracking-widest"
+                                     >
+                                        Descargar 💾
+                                     </button>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+               </div>
+            </div>
+          )}
+          
+          {activeTab === 'settings' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+               {/* Información General */}
+               <div className="bg-white p-10 rounded-[3rem] shadow-lg border border-gray-100">
+                  <h3 className="text-2xl font-bold text-[#a12d34] mb-8">Información de la Cuenta</h3>
+                  <div className="space-y-6">
+                     <div className="grid grid-cols-2 gap-6">
+                       <div>
+                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nombre Completo</label>
+                         <div className="bg-slate-50 p-4 rounded-xl font-bold text-gray-700 border border-slate-100">{currentViewUser?.name}</div>
+                       </div>
+                       <div>
+                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">DNI / Pasaporte</label>
+                         <div className="bg-slate-50 p-4 rounded-xl font-bold text-[#a12d34] border border-slate-100 uppercase text-[12px]">{currentViewUser?.dni || 'NO ASIGNADO'}</div>
+                       </div>
+                     </div>
+                     <div>
+                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Email de Acceso</label>
+                       <div className="bg-slate-50 p-4 rounded-xl font-bold text-gray-700 border border-slate-100">{currentViewUser?.email}</div>
+                     </div>
+                     <div>
+                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Directorio Drive Sincronizado</label>
+                       <div className="bg-slate-50 p-4 rounded-xl font-mono text-[10px] text-gray-500 border border-slate-100">{currentViewUser?.driveFolderPath || 'SIN CARPETA'}</div>
+                     </div>
+                     
+                     {user.role === UserRole.ADMIN && selectedSellerId && (
+                       <div className="pt-8 border-t border-dashed border-gray-100">
+                          <p className="text-xs text-amber-600 font-bold mb-4">⚠️ Zona de Gestión Administrativa</p>
+                          <button 
+                           onClick={() => handleDeleteSeller(selectedSellerId)}
+                           className="w-full py-4 bg-red-50 text-red-600 rounded-2xl font-bold border border-red-100 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                          >
+                            Eliminar Expediente del Sistema
+                          </button>
+                       </div>
+                     )}
+                  </div>
+               </div>
+
+               {/* Cambio de Contraseña / Restablecimiento */}
+               {(user.role === UserRole.ADMIN || !selectedSellerId) && (
+                  <div className="bg-white p-10 rounded-[3rem] shadow-lg border border-gray-100 animate-fadeIn">
+                     <h3 className="text-2xl font-bold text-[#a12d34] mb-8">
+                       {selectedSellerId ? `Restablecer Clave: ${currentViewUser?.name}` : 'Seguridad y Acceso'}
+                     </h3>
+                     <form onSubmit={handleChangePassword} className="space-y-6">
+                        {passMessage.text && (
+                           <div className={`p-4 rounded-xl text-sm font-bold border-l-4 animate-fadeIn ${
+                              passMessage.type === 'success' ? 'bg-green-50 border-green-500 text-green-700' : 'bg-red-50 border-red-500 text-red-700'
+                           }`}>
+                              {passMessage.text}
+                           </div>
+                        )}
+                        
+                        {!selectedSellerId && (
+                           <div>
+                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Contraseña Actual</label>
+                              <input 
+                                 type="password" 
+                                 value={passCurrent} 
+                                 onChange={e => setPassCurrent(e.target.value)} 
+                                 placeholder="Introduzca su clave actual" 
+                                 className={UI_CONFIG.inputClass} 
+                                 required 
+                              />
+                           </div>
+                        )}
+
+                        <div className={!selectedSellerId ? "pt-4 border-t border-slate-50" : ""}>
+                           <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nueva Contraseña</label>
+                           <input 
+                              type="password" 
+                              value={passNew} 
+                              onChange={e => setPassNew(e.target.value)} 
+                              placeholder="Mínimo 6 caracteres" 
+                              className={UI_CONFIG.inputClass} 
+                              required 
+                           />
+                        </div>
+                        <div>
+                           <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Confirmar Nueva Contraseña</label>
+                           <input 
+                              type="password" 
+                              value={passConfirm} 
+                              onChange={e => setPassConfirm(e.target.value)} 
+                              placeholder="Repita la nueva clave" 
+                              className={UI_CONFIG.inputClass} 
+                              required 
+                           />
+                        </div>
+                        <button 
+                           type="submit" 
+                           className="w-full bg-[#C5A059] text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-[#b08e4d] transition-all active:scale-95"
+                        >
+                           {selectedSellerId ? 'Restablecer Clave Vendedor' : 'Actualizar Contraseña'}
+                        </button>
+                     </form>
+                  </div>
+               )}
             </div>
           )}
         </div>
       )}
 
+      {/* MODAL: ALTA DE VENDEDOR (ADMIN) */}
       {showAddSeller && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
-          <form onSubmit={handleAddSeller} className="bg-white w-full max-w-md rounded-[3rem] p-10 space-y-6">
-            <h3 className="text-2xl font-bold text-center">Nuevo Vendedor</h3>
-            <div className="space-y-4">
-               <div><label className="text-[10px] font-bold text-gray-400 uppercase">Nombre y Apellidos</label><input type="text" value={newSellerName} onChange={e => setNewSellerName(e.target.value)} className={UI_CONFIG.inputClass} required /></div>
-               <div><label className="text-[10px] font-bold text-gray-400 uppercase">Email</label><input type="email" value={newSellerEmail} onChange={e => setNewSellerEmail(e.target.value)} className={UI_CONFIG.inputClass} required /></div>
-               <div><label className="text-[10px] font-bold text-gray-400 uppercase">Clave Inicial</label><input type="password" value={newSellerPass} onChange={e => setNewSellerPass(e.target.value)} className={UI_CONFIG.inputClass} required /></div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <form onSubmit={handleAddSeller} className="bg-white w-full max-w-md rounded-[3rem] p-10 space-y-6 animate-scaleIn shadow-2xl border border-gray-100">
+            <div className="text-center mb-8">
+               <div className="w-16 h-16 bg-red-50 text-[#a12d34] rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4">➕</div>
+               <h3 className="text-2xl font-bold text-gray-800">Alta de Colaborador</h3>
+               <p className="text-xs text-gray-400 mt-1 uppercase font-bold tracking-widest">Nuevo Expediente Drive</p>
             </div>
-            <div className="flex gap-4">
-              <button type="button" onClick={() => setShowAddSeller(false)} className="flex-1 font-bold text-gray-400">Cerrar</button>
-              <button type="submit" className="flex-1 bg-[#a12d34] text-white py-4 rounded-2xl font-bold shadow-xl">Guardar</button>
+            
+            <div className="space-y-4">
+               <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Nombre y Apellidos</label>
+                  <input type="text" value={newSellerName} onChange={e => setNewSellerName(e.target.value)} placeholder="Ej: Juan Pérez" className={UI_CONFIG.inputClass} required />
+               </div>
+               <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Email Profesional</label>
+                  <input type="email" value={newSellerEmail} onChange={e => setNewSellerEmail(e.target.value)} placeholder="jperez@grupovitalicio.es" className={UI_CONFIG.inputClass} required />
+               </div>
+               <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Clave de Acceso Inicial</label>
+                  <input type="password" value={newSellerPass} onChange={e => setNewSellerPass(e.target.value)} placeholder="••••••••" className={UI_CONFIG.inputClass} required />
+               </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button type="button" onClick={() => setShowAddSeller(false)} className="flex-1 font-bold text-gray-400">Cancelar</button>
+              <button 
+                type="submit" 
+                className="flex-1 bg-[#a12d34] text-white py-4 rounded-2xl font-bold shadow-xl"
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Sincronizando...' : 'Dar de Alta'}
+              </button>
             </div>
           </form>
         </div>
       )}
 
-      {showDrivePicker && <DrivePickerModal onSelect={onDriveFolderSelected} onCancel={() => setShowDrivePicker(false)} />}
-      {showAuditModal && <AuditModal logs={logs} onCancel={() => setShowAuditModal(false)} />}
+      {/* MODAL: DRIVE PICKER (ADMIN) */}
+      {showDrivePicker && (
+        <DrivePickerModal 
+          onSelect={onDriveFolderSelected} 
+          onCancel={() => setShowDrivePicker(false)} 
+        />
+      )}
+
+      {/* MODAL: AUDITORIA GLOBAL (ADMIN) */}
+      {showAuditModal && (
+        <AuditModal 
+          logs={logs} 
+          onCancel={() => setShowAuditModal(false)} 
+        />
+      )}
     </Layout>
   );
 };

@@ -44,17 +44,9 @@ export const driveService = {
   createSellerFolder: async (sellerName: string, rootPath: string) => {
     const user = decrypt(_sys);
     console.log(`[Google Drive] Usando cuenta: ${user}`);
-    // Aseguramos que la subcarpeta use el nombre y apellidos directamente bajo la raíz configurada
-    const fullPath = `${rootPath}/${sellerName}`;
-    console.log(`[Google Drive] Creando carpeta de vendedor en: ${fullPath}`);
+    console.log(`[Google Drive] Creando carpeta de vendedor en: ${rootPath}/${sellerName}`);
     await new Promise(resolve => setTimeout(resolve, 800));
-    return fullPath;
-  },
-
-  getFolderViewUrl: (path: string) => {
-    // Generamos una URL simulada que apunta a la interfaz de Drive
-    const encodedPath = encodeURIComponent(path);
-    return `https://drive.google.com/drive/u/0/search?q=${encodedPath}`;
+    return `${rootPath}/${sellerName}`;
   },
 
   moveFolderToDeleted: async (currentPath: string) => {

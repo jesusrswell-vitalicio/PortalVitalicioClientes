@@ -1,0 +1,8 @@
+{
+  "name": "Portal Grupo Vitalicio - Senior Edition",
+  "description": "Una aplicación diseñada específicamente para personas mayores y asesores de Grupo Vitalicio, facilitando la gestión de documentos, firma de contratos y comunicación fluida con una interfaz accesible.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
