@@ -10,6 +10,52 @@ import { driveService } from './services/driveService';
 const ADMIN_EMAIL = 'jmartinez@grupovitalicio.es';
 const ADMIN_PASS_INITIAL = 'Vitalicio@2020';
 
+const PRIVACY_POLICY_TEXT = `
+Mediante el presente aviso legal y política de privacidad, GRUPO VITALICIO con domicilio social en CALLE ZURBANO 45, 1ª PLANTA, 28010 DE MADRID, informa a los usuarios del sitio webs grupovitalicio.es, Crm.grupovitalicio.es, y este portal de clientes, de su Política de Privacidad, y describe qué datos recoge, cómo los utiliza, las opciones de los usuarios en relación a estos datos, sus derechos (conocidos como derechos ARCO, Acceso, Rectificación, Cancelación y Oposición y los nuevos introducidos por el RGPD, derecho al olvido, derecho a la portabilidad de los datos personales y el derecho a la limitación en el tratamiento), la seguridad de sus datos, y la modificación de la política de confidencialidad.
+
+La utilización del sitio web de GRUPO VITALICIO y de cualquiera de los servicios que se incorporan en él, supone la plena aceptación de las condiciones que se presentan a continuación Política de Privacidad.
+
+1. INFORMACIÓN AL USUARIO
+¿Quién es el responsable del tratamiento de tus datos personales?
+GRUPO VITALICIO VIVIENDA INVERSIONES, S.L. es el RESPONSABLE del tratamiento de los datos personales del USUARIO y le informa de que estos datos serán tratados de conformidad con lo dispuesto en el Reglamento (UE) 2016/679, de 27 de abril (GDPR), y la Ley Orgánica 3/2018, de 5 de diciembre (LOPDGDD)
+
+¿Para qué tratamos tus datos personales y por qué lo hacemos?
+Según el formulario donde hayamos obtenido sus datos personales, los trataremos de manera confidencial para alcanzar los siguientes fines:
+En el formulario Contacto
+• Dar respuesta a las consultas o cualquier tipo de petición que sea realizada por el usuario a través de cualquiera de las formas de contacto que se ponen a su disposición en la página web del responsable. (por el interés legítimo del responsable, art. 6.1.f GDPR)
+• Realizar análisis estadísticos y estudios de mercado. (por el interés legítimo del responsable, art. 6.1.f GDPR)
+
+En el formulario Solicita presupuesto y/o sube documentos asociados
+• Enviar presupuestos comerciales sobre productos y servicios. (para la ejecución de un contrato o precontrato, 6.1.b GDPR)
+
+¿Durante cuánto tiempo guardaremos tus datos personales?
+Se conservarán durante no más tiempo del necesario para mantener el fin del tratamiento o existan prescripciones legales que dictaminen su custodia y cuando ya no sea necesario para ello, se suprimirán con medidas de seguridad adecuadas para garantizar la anonimización de los datos o la destrucción total de los mismos.
+
+¿A quién facilitamos tus datos personales?
+No está prevista ninguna comunicación de datos personales a terceros salvo, si fuese necesario para el desarrollo y ejecución de las finalidades del tratamiento, a nuestros proveedores de servicios relacionados con comunicaciones, con los cuales el RESPONSABLE tiene suscritos los contratos de confidencialidad y de encargado de tratamiento exigidos por la normativa vigente de privacidad.
+
+¿Cuáles son tus derechos?
+Los derechos que asisten al USUARIO son:
+• Derecho a retirar el consentimiento en cualquier momento.
+• Derecho de acceso, rectificación, portabilidad y supresión de sus datos, y de limitación u oposición a su tratamiento.
+• Derecho a presentar una reclamación ante la autoridad de control (www.aepd.es) si considera que el tratamiento no se ajusta a la normativa vigente.
+
+Datos de contacto para ejercer sus derechos:
+GRUPO VITALICIO VIVIENDA INVERSIONES S, L. C/ ZURBANO 45, 1ª PLANTA, MADRID (Madrid). E-mail: info@grupovitalicio.es 
+Datos de contacto del delegado de protección de datos TGIRALDO@GRUPOVITALICIO.ES
+
+CARÁCTER OBLIGATORIO O FACULTATIVO DE LA INFORMACIÓN FACILITADA POR EL USUARIO
+Los USUARIOS, mediante la marcación de las casillas correspondientes y la entrada de datos en los campos, marcados con un asterisco (*) en el formulario de contacto o presentados en formularios de descarga, aceptan expresamente y de forma libre e inequívoca, que sus datos son necesarios para atender su petición, por parte del prestador, siendo voluntaria la inclusión de datos en los campos restantes. El USUARIO garantiza que los datos personales facilitados al RESPONSABLE son veraces y se hace responsable de comunicar cualquier modificación de los mismos.
+El RESPONSABLE informa de que todos los datos solicitados a través del sitio web son obligatorios, ya que son necesarios para la prestación de un servicio óptimo al USUARIO. En caso de que no se faciliten todos los datos, no se garantiza que la información y servicios facilitados sean completamente ajustados a sus necesidades.
+
+3. MEDIDAS DE SEGURIDAD
+Que de conformidad con lo dispuesto en las normativas vigentes en protección de datos personales, el RESPONSABLE está cumpliendo con todas las disposiciones de las normativas GDPR y LOPDGDD para el tratamiento de los datos personales de su responsabilidad, y manifiestamente con los principios descritos en el artículo 5 del GDPR, por los cuales son tratados de manera lícita, leal y transparente en relación con el interesado y adecuados, pertinentes y limitados a lo necesario en relación con los fines para los que son tratados.
+El RESPONSABLE garantiza que ha implementado políticas técnicas y organizativas apropiadas para aplicar las medidas de seguridad que establecen el GDPR y la LOPDGDD con el fin de proteger los derechos y libertades de los USUARIOS y les ha comunicado la información adecuada para que puedan ejercerlos.
+
+Para más información sobre las garantías de privacidad, puedes dirigirte al RESPONSABLE a través de:
+GRUPO VITALICIO VIVIENDA INVERSIONES S.L. C/ ZURBANO 45, 1ª PLANTA – 28010 MADRID (Madrid). E-mail: info@grupovitalicio.es
+`;
+
 const INITIAL_USERS: User[] = [
   { id: 'admin_1', name: 'J. Martínez', email: ADMIN_EMAIL, role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: 'Mi Unidad/VendedoresExternos/Admin', privacySigned: true },
   { id: 'v_1', name: 'Antonio García', email: 'antonio@gmail.com', role: UserRole.SELLER, status: 'ACTIVE', driveFolderPath: 'Mi Unidad/VendedoresExternos/Antonio García', privacySigned: false }
@@ -21,7 +67,7 @@ const INITIAL_PASSWORDS: Record<string, string> = {
 };
 
 const INITIAL_DOCS: Document[] = [
-  { id: 'd1', name: 'Contrato Vitalicio Antonio', type: 'CONTRACT', url: '', status: 'PENDING', uploadDate: '2024-05-20', ownerId: 'v_1', folderPath: 'Mi Unidad/VendedoresExternos/Antonio García' },
+  { id: 'd1', name: 'Contrato Vitalicio Antonio', type: 'CONTRACT', url: '', status: 'PENDING', uploadDate: '20/05/2024', ownerId: 'v_1', folderPath: 'Mi Unidad/VendedoresExternos/Antonio García' },
 ];
 
 const CommentsSection: React.FC<{ 
@@ -121,7 +167,10 @@ const App: React.FC = () => {
   const [captchaValue, setCaptchaValue] = useState('');
   const [userCaptchaInput, setUserCaptchaInput] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [showAdminRecoveryOption, setShowAdminRecoveryOption] = useState(false);
+  
+  // Privacy Acceptance State
+  const [userDniInput, setUserDniInput] = useState('');
+  const [dniError, setDniError] = useState('');
 
   // Password Change Form State
   const [passCurrent, setPassCurrent] = useState('');
@@ -205,12 +254,7 @@ const App: React.FC = () => {
     const foundUser = allUsers.find(u => u.email === email && u.status === 'ACTIVE');
     
     if (!foundUser || userPasswords[email] !== password) {
-      if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        setLoginError('Credenciales de administrador incorrectas.');
-        setShowAdminRecoveryOption(true);
-      } else {
-        setLoginError('Error de acceso. Contacte con soporte: 663 04 04 04');
-      }
+      setLoginError('Error de acceso. Compruebe sus datos o contacte con soporte: 663 04 04 04');
       generateCaptcha();
       return;
     }
@@ -275,9 +319,28 @@ const App: React.FC = () => {
 
   const handlePrivacyAcceptance = (signatureUrl: string) => {
     if (!user) return;
-    const updatedUsers = allUsers.map(u => u.id === user.id ? { ...u, privacySigned: true } : u);
+    if (!userDniInput.trim()) {
+        setDniError('El DNI/Pasaporte es obligatorio para firmar.');
+        return;
+    }
+
+    const updatedUsers = allUsers.map(u => u.id === user.id ? { ...u, privacySigned: true, dni: userDniInput } : u);
     setAllUsers(updatedUsers);
-    setUser({ ...user, privacySigned: true });
+    setUser({ ...user, privacySigned: true, dni: userDniInput });
+    
+    // Crear el documento "Contrato de Privacidad Firmado"
+    const privacyDoc: Document = {
+        id: 'privacy_' + user.id,
+        name: 'Política_Privacidad_Firmada.pdf',
+        type: 'CONTRACT',
+        url: signatureUrl, // Guardamos la firma como URL del documento para el visor
+        status: 'SIGNED',
+        uploadDate: new Date().toLocaleDateString('es-ES'),
+        ownerId: user.id,
+        folderPath: user.driveFolderPath
+    };
+    setDocs(prev => [...prev, privacyDoc]);
+    
     addLog(user.id, 'PRIVACY_ACCEPTANCE', 'Política de Privacidad Integral');
     setShowPrivacySignature(false);
   };
@@ -294,21 +357,28 @@ const App: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      await driveService.syncDocument(file.name, targetUser.driveFolderPath);
-      const newDoc: Document = {
-        id: 'd_' + Date.now(),
-        name: file.name,
-        type: type,
-        url: URL.createObjectURL(file),
-        status: 'PENDING',
-        uploadDate: new Date().toLocaleDateString(),
-        ownerId: targetUser.id,
-        folderPath: targetUser.driveFolderPath
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const fileDataUrl = event.target?.result as string;
+        await driveService.syncDocument(file.name, targetUser.driveFolderPath);
+        const newDoc: Document = {
+          id: 'd_' + Date.now(),
+          name: file.name,
+          type: type,
+          url: fileDataUrl,
+          status: 'PENDING',
+          uploadDate: new Date().toLocaleDateString('es-ES'),
+          ownerId: targetUser.id,
+          folderPath: targetUser.driveFolderPath
+        };
+        setDocs(prev => [...prev, newDoc]);
+        addLog(targetUser.id, 'UPLOAD', file.name);
+        setIsProcessing(false);
       };
-      setDocs(prev => [...prev, newDoc]);
-      addLog(targetUser.id, 'UPLOAD', file.name);
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setIsProcessing(false);
     } finally { 
-      setIsProcessing(false); 
       e.target.value = '';
     }
   };
@@ -322,13 +392,121 @@ const App: React.FC = () => {
     addLog(doc.ownerId, 'DELETE', doc.name);
   };
 
+  const generateContractHTML = (doc: Document, owner: User) => {
+      return `
+                <html>
+                <head>
+                    <title>${doc.name}</title>
+                    <style>
+                        body { font-family: 'Open Sans', sans-serif; padding: 60px; line-height: 1.6; color: #333; max-width: 800px; margin: auto; border: 1px solid #eee; background-color: #fff; }
+                        h1 { color: #a12d34; border-bottom: 2px solid #a12d34; padding-bottom: 10px; text-align: center; }
+                        .info-box { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #ddd; }
+                        .info-item { margin-bottom: 5px; }
+                        .legal-text { font-size: 11px; color: #444; white-space: pre-line; border: 1px solid #eee; padding: 20px; background: #fff; margin-bottom: 40px; text-align: justify; }
+                        .signature-container { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 60px; }
+                        .signature-box { border-bottom: 2px solid #000; width: 320px; text-align: center; padding-bottom: 10px; }
+                        .signature-img { width: 280px; max-height: 120px; object-fit: contain; }
+                        @media print {
+                            body { border: none; padding: 0; }
+                            .legal-text { height: auto; border: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Grupo Vitalicio - Política de Privacidad Firmada</h1>
+                    
+                    <div class="info-box">
+                        <div class="info-item"><strong>Nombre Completo:</strong> ${owner.name}</div>
+                        <div class="info-item"><strong>DNI / Pasaporte:</strong> ${owner.dni || 'N/A'}</div>
+                        <div class="info-item"><strong>Email Corporativo:</strong> ${owner.email}</div>
+                        <div class="info-item"><strong>Fecha y Hora de Firma:</strong> ${doc.uploadDate}</div>
+                    </div>
+
+                    <h3>Declaración de Conformidad:</h3>
+                    <div class="legal-text">${PRIVACY_POLICY_TEXT}</div>
+
+                    <div class="signature-container">
+                        <div class="signature-box">
+                            <img src="${doc.url}" class="signature-img" /><br/>
+                            <strong>Firma del Colaborador Externo</strong>
+                        </div>
+                        <div style="text-align: right;">
+                             <img src="https://grupovitalicio.es/wp-content/uploads/2021/04/cropped-Logo-Vitalicio-1.png" style="height: 45px; margin-bottom: 10px;" /><br/>
+                             <small>Documento Generado Automáticamente<br/>Sistema de Gestión de Grupo Vitalicio</small>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+  }
+
+  const handleDownloadDoc = (doc: Document) => {
+    if (!doc.url) {
+        alert("El archivo no tiene una URL válida para descargar.");
+        return;
+    }
+
+    if (doc.type === 'CONTRACT' && doc.id.startsWith('privacy_')) {
+        const owner = allUsers.find(u => u.id === doc.ownerId);
+        if (!owner) return;
+        
+        const htmlContent = generateContractHTML(doc, owner);
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        // Aunque el usuario pide PDF, generamos un HTML auto-contenido que puede imprimirse como PDF
+        // Para mejorar la UX lo descargamos como .html que es el formato real del blob generado
+        link.download = doc.name.replace('.pdf', '') + '.html'; 
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        return;
+    }
+
+    // Descarga estándar para PDFs e Imágenes
+    const link = document.createElement('a');
+    link.href = doc.url;
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleViewDoc = (doc: Document) => {
+    const docOwner = allUsers.find(u => u.id === doc.ownerId);
+
+    if (doc.type === 'CONTRACT' && doc.id.startsWith('privacy_')) {
+        const win = window.open("", "_blank");
+        if (win && docOwner) {
+            win.document.write(generateContractHTML(doc, docOwner));
+            win.document.close();
+        }
+        return;
+    }
+
+    if (doc.url.startsWith('data:')) {
+        const win = window.open();
+        if (win) {
+            if (doc.type === 'IMAGE') {
+                win.document.write(`<img src="${doc.url}" style="max-width:100%; height:auto;">`);
+            } else if (doc.type === 'PDF') {
+                win.document.write(`<iframe src="${doc.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+            }
+        }
+    } else {
+        window.open(doc.url, '_blank');
+    }
+  };
+
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
     setPassMessage({ text: '', type: '' });
 
     if (!user) return;
 
-    // Check if it's an admin resetting a seller's password
     const isAdminReset = user.role === UserRole.ADMIN && selectedSellerId;
     const targetUser = isAdminReset 
       ? allUsers.find(u => u.id === selectedSellerId) 
@@ -336,32 +514,27 @@ const App: React.FC = () => {
 
     if (!targetUser) return;
 
-    // Verify current password only if it's NOT an admin reset
     if (!isAdminReset && userPasswords[user.email] !== passCurrent) {
       setPassMessage({ text: 'La contraseña actual es incorrecta.', type: 'error' });
       return;
     }
 
-    // Verify new passwords match
     if (passNew !== passConfirm) {
       setPassMessage({ text: 'Las nuevas contraseñas no coinciden.', type: 'error' });
       return;
     }
 
-    // Minimum length validation
     if (passNew.length < 6) {
       setPassMessage({ text: 'La nueva contraseña debe tener al menos 6 caracteres.', type: 'error' });
       return;
     }
 
-    // Update password
     setUserPasswords(prev => ({ ...prev, [targetUser.email]: passNew }));
     setPassMessage({ 
       text: isAdminReset ? `¡Contraseña de ${targetUser.name} actualizada!` : '¡Contraseña actualizada con éxito!', 
       type: 'success' 
     });
     
-    // Reset form
     setPassCurrent('');
     setPassNew('');
     setPassConfirm('');
@@ -377,19 +550,46 @@ const App: React.FC = () => {
       <div className="fixed inset-0 bg-slate-100 z-[999] flex items-center justify-center p-4">
         <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh]">
           <div className="p-8 border-b bg-slate-50 rounded-t-[2.5rem] flex justify-between items-center">
-             <h2 className="text-2xl font-bold text-[#a12d34]">Aceptación de Privacidad</h2>
+             <h2 className="text-2xl font-bold text-[#a12d34]">Política de Privacidad Obligatoria</h2>
              <button onClick={handleLogout} className="text-red-500 font-bold">Cerrar Sesión</button>
           </div>
-          <div className="flex-1 overflow-y-auto p-10 space-y-6 text-sm leading-relaxed text-gray-700">
-            <p className="font-bold uppercase">GRUPO VITALICIO VIVIENDA E INVERSIONES S.L</p>
-            <p>Este portal es una herramienta profesional para la gestión de activos inmobiliarios e inversiones. Al acceder, usted reconoce que toda la información subida (fotos de inmuebles, DNIs de clientes, contratos firmados) será tratada bajo el Reglamento General de Protección de Datos (RGPD).</p>
-            <p>Los archivos se almacenan en una infraestructura segura en la nube (Google Drive corporativo) gestionada por Grupo Vitalicio. Usted tiene derecho a acceder, rectificar o suprimir sus datos en cualquier momento contactando con dpo@grupovitalicio.es.</p>
-            <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-               <p className="text-xs font-bold text-yellow-800">⚠️ IMPORTANTE: Como colaborador externo, es su responsabilidad asegurar que las fotos y documentos subidos corresponden al expediente correcto para evitar fugas de información.</p>
+          <div className="flex-1 overflow-y-auto p-10 space-y-6 text-sm leading-relaxed text-gray-700 font-medium">
+            <div className="whitespace-pre-line bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                {PRIVACY_POLICY_TEXT}
+            </div>
+            
+            <div className="pt-6 border-t">
+               <h3 className="text-lg font-bold text-[#a12d34] mb-4">Identificación del Firmante</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div>
+                       <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Nombre Completo</label>
+                       <div className="p-4 bg-slate-100 rounded-xl text-gray-500 font-bold">{user.name}</div>
+                   </div>
+                   <div>
+                       <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">DNI / Pasaporte (*)</label>
+                       <input 
+                         type="text" 
+                         value={userDniInput} 
+                         onChange={e => { setUserDniInput(e.target.value); setDniError(''); }} 
+                         placeholder="Ej: 12345678X" 
+                         className={`${UI_CONFIG.inputClass} ${dniError ? 'border-red-500' : ''}`}
+                         required 
+                       />
+                       {dniError && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{dniError}</p>}
+                   </div>
+               </div>
             </div>
           </div>
-          <div className="p-8 border-t flex justify-center">
-             <button onClick={() => setShowPrivacySignature(true)} className="bg-[#a12d34] text-white px-12 py-4 rounded-2xl font-bold text-xl shadow-xl transition-transform active:scale-95">Proceder a la Firma</button>
+          <div className="p-8 border-t flex justify-center bg-slate-50 rounded-b-[2.5rem]">
+             <button 
+               onClick={() => {
+                 if(!userDniInput.trim()){ setDniError('Debe introducir su DNI para firmar.'); return; }
+                 setShowPrivacySignature(true);
+               }} 
+               className="bg-[#a12d34] text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-xl transition-transform active:scale-95"
+             >
+               Confirmar Datos y Firmar
+             </button>
           </div>
         </div>
         {showPrivacySignature && <SignaturePad onSave={handlePrivacyAcceptance} onCancel={() => setShowPrivacySignature(false)} />}
@@ -493,7 +693,7 @@ const App: React.FC = () => {
                   <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-xl">🛡️</div>
                   <h3 className="font-bold text-gray-800">Seguridad</h3>
                 </div>
-                <p className="text-xs text-gray-500 leading-relaxed mb-4">Todas las operaciones de subida y borrado son auditadas y quedan registradas en el historial de cada expediente.</p>
+                <p className="text-xs text-gray-500 leading-relaxed mb-4">Operaciones auditadas. El Administrador puede supervisar todos los documentos y firmas.</p>
                 <button className="w-full py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors">Ver Auditoría de Drive</button>
              </div>
           </div>
@@ -515,7 +715,6 @@ const App: React.FC = () => {
               <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-100">
                  <span className="text-5xl block mb-4">👥</span>
                  <p className="text-gray-400 font-bold">No hay vendedores registrados.</p>
-                 <button onClick={() => setShowAddSeller(true)} className="mt-4 text-[#a12d34] font-bold underline">Añadir el primero</button>
               </div>
             ) : (
               allUsers.filter(u => u.role === UserRole.SELLER && u.status === 'ACTIVE').map(s => (
@@ -530,7 +729,7 @@ const App: React.FC = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`w-2 h-2 rounded-full ${s.privacySigned ? 'bg-green-500' : 'bg-amber-500'}`}></span>
                         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
-                          {s.privacySigned ? 'Privacidad Firmada' : 'Pendiente de Firma'}
+                          {s.privacySigned ? `DNI: ${s.dni || 'PENDIENTE'}` : 'Pendiente de Firma'}
                         </p>
                       </div>
                     </div>
@@ -546,7 +745,6 @@ const App: React.FC = () => {
                     <button 
                       onClick={() => handleDeleteSeller(s.id)} 
                       className="p-3 bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all"
-                      title="Eliminar Vendedor"
                     >
                       🗑️
                     </button>
@@ -645,34 +843,51 @@ const App: React.FC = () => {
                     <span>📂</span> {activeTab === 'docs' ? 'Documentos del Expediente' : 'Galería de Imágenes'}
                   </h4>
                   
-                  {currentDocs.filter(d => activeTab === 'docs' ? d.type === 'PDF' : d.type === 'IMAGE').length === 0 ? (
+                  {currentDocs.filter(d => activeTab === 'docs' ? (d.type === 'PDF' || d.type === 'CONTRACT') : d.type === 'IMAGE').length === 0 ? (
                     <div className="text-center py-16 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                        <p className="text-gray-400 font-bold italic">No hay archivos en esta categoría.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {currentDocs.filter(d => activeTab === 'docs' ? d.type === 'PDF' : d.type === 'IMAGE').map(doc => (
+                      {currentDocs.filter(d => activeTab === 'docs' ? (d.type === 'PDF' || d.type === 'CONTRACT') : d.type === 'IMAGE').map(doc => (
                         <div key={doc.id} className="bg-white rounded-[2rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all border border-gray-100 flex flex-col group">
                            <div className="h-48 bg-slate-100 flex items-center justify-center relative overflow-hidden">
                               {doc.type === 'IMAGE' && doc.url ? (
                                 <img src={doc.url} alt={doc.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                               ) : (
-                                <span className="text-6xl group-hover:scale-125 transition-transform duration-300">📕</span>
+                                <span className="text-6xl group-hover:scale-125 transition-transform duration-300">
+                                    {doc.type === 'CONTRACT' ? '📜' : '📕'}
+                                </span>
                               )}
                               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button 
-                                  onClick={() => handleDeleteDoc(doc.id)} 
-                                  className="w-10 h-10 bg-white/90 text-red-500 rounded-full shadow-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
-                                 >
-                                    🗑️
-                                 </button>
+                                 { (user.role === UserRole.ADMIN || user.id === doc.ownerId) && (
+                                     <button 
+                                      onClick={() => handleDeleteDoc(doc.id)} 
+                                      className="w-10 h-10 bg-white/90 text-red-500 rounded-full shadow-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                                     >
+                                        🗑️
+                                     </button>
+                                 )}
                               </div>
                            </div>
                            <div className="p-6">
                               <p className="font-bold text-gray-800 truncate" title={doc.name}>{doc.name}</p>
-                              <div className="flex justify-between items-center mt-4">
-                                 <span className="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-gray-500 font-bold uppercase tracking-wider">{doc.uploadDate}</span>
-                                 <button className="text-[10px] font-bold text-[#a12d34] hover:underline uppercase tracking-widest">Descargar 💾</button>
+                              <div className="flex flex-col gap-3 mt-4">
+                                 <span className="text-[10px] bg-slate-100 px-3 py-1 self-start rounded-full text-gray-500 font-bold uppercase tracking-wider">{doc.uploadDate}</span>
+                                 <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                     <button 
+                                        onClick={() => handleViewDoc(doc)}
+                                        className="text-[10px] font-bold text-[#a12d34] hover:underline uppercase tracking-widest"
+                                     >
+                                        Ver Online 👁️
+                                     </button>
+                                     <button 
+                                        onClick={() => handleDownloadDoc(doc)}
+                                        className="text-[10px] font-bold text-[#C5A059] hover:underline uppercase tracking-widest"
+                                     >
+                                        Descargar 💾
+                                     </button>
+                                 </div>
                               </div>
                            </div>
                         </div>
@@ -695,8 +910,8 @@ const App: React.FC = () => {
                          <div className="bg-slate-50 p-4 rounded-xl font-bold text-gray-700 border border-slate-100">{currentViewUser?.name}</div>
                        </div>
                        <div>
-                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Rol en Sistema</label>
-                         <div className="bg-slate-50 p-4 rounded-xl font-bold text-[#a12d34] border border-slate-100 uppercase text-[10px]">{currentViewUser?.role}</div>
+                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">DNI / Pasaporte</label>
+                         <div className="bg-slate-50 p-4 rounded-xl font-bold text-[#a12d34] border border-slate-100 uppercase text-[12px]">{currentViewUser?.dni || 'NO ASIGNADO'}</div>
                        </div>
                      </div>
                      <div>
@@ -737,7 +952,6 @@ const App: React.FC = () => {
                            </div>
                         )}
                         
-                        {/* Solo pedimos la clave actual si el usuario está en su propio perfil (no es admin reseteando a vendedor) */}
                         {!selectedSellerId && (
                            <div>
                               <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Contraseña Actual</label>
@@ -780,11 +994,6 @@ const App: React.FC = () => {
                         >
                            {selectedSellerId ? 'Restablecer Clave Vendedor' : 'Actualizar Contraseña'}
                         </button>
-                        <p className="text-[10px] text-center text-gray-400 font-medium">
-                           {selectedSellerId 
-                             ? 'El vendedor podrá entrar con esta nueva clave inmediatamente.' 
-                             : 'Por seguridad, use una contraseña que no use en otros servicios.'}
-                        </p>
                      </form>
                   </div>
                )}
@@ -796,7 +1005,7 @@ const App: React.FC = () => {
       {/* MODAL: ALTA DE VENDEDOR (ADMIN) */}
       {showAddSeller && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <form onSubmit={handleAddSeller} className="bg-white w-full max-w-md rounded-[3rem] p-10 space-y-6 animate-scaleIn shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] border border-gray-100">
+          <form onSubmit={handleAddSeller} className="bg-white w-full max-w-md rounded-[3rem] p-10 space-y-6 animate-scaleIn shadow-2xl border border-gray-100">
             <div className="text-center mb-8">
                <div className="w-16 h-16 bg-red-50 text-[#a12d34] rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4">➕</div>
                <h3 className="text-2xl font-bold text-gray-800">Alta de Colaborador</h3>
@@ -819,17 +1028,15 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={() => setShowAddSeller(false)} className="flex-1 font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancelar</button>
+              <button type="button" onClick={() => setShowAddSeller(false)} className="flex-1 font-bold text-gray-400">Cancelar</button>
               <button 
                 type="submit" 
-                className="flex-1 bg-[#a12d34] text-white py-4 rounded-2xl font-bold shadow-xl hover:bg-[#8e272d] transition-all disabled:opacity-50"
+                className="flex-1 bg-[#a12d34] text-white py-4 rounded-2xl font-bold shadow-xl"
                 disabled={isProcessing}
               >
                 {isProcessing ? 'Sincronizando...' : 'Dar de Alta'}
               </button>
             </div>
-            
-            <p className="text-[9px] text-center text-gray-400 italic">Al confirmar, se creará una carpeta sincronizada en Google Drive con el nombre del colaborador.</p>
           </form>
         </div>
       )}

@@ -8,10 +8,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  dni?: string; // Documento Nacional de Identidad o Pasaporte
   role: UserRole;
   status: 'ACTIVE' | 'DELETED';
   driveFolderPath: string;
-  privacySigned?: boolean; // Nuevo campo para control de primer acceso
+  privacySigned?: boolean;
 }
 
 export interface Document {
