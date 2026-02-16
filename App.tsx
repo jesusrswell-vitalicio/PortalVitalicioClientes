@@ -443,13 +443,20 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
 
   const handleAddSeller = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mainDriveFolder) {
-      alert("Debe configurar primero la carpeta raíz de Google Drive en el Panel Global.");
+    
+    // Verificamos que Drive esté configurado y tengamos el Token
+    if (!mainDriveFolder || !googleToken) {
+      alert("Debe vincular Google Drive y seleccionar la carpeta raíz en el Panel Global.");
       return;
     }
+
     setIsProcessing(true);
     try {
-      const drivePath = await driveService.createSellerFolder(newSellerName, mainDriveFolder);
+      // 1. Creamos la carpeta real en Google Drive usando el ID del padre (mainDriveFolder)
+      const driveFolder = await driveService.createSellerFolder(newSellerName, mainDriveFolder, googleToken);
+      
+      if (!driveFolder.id) throw new Error("No se pudo obtener el ID de la carpeta");
+
       const newId = 'v_' + Date.now();
       const newUser: User = {
         id: newId,
@@ -457,20 +464,29 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
         email: newSellerEmail,
         role: UserRole.SELLER,
         status: 'ACTIVE',
-        driveFolderPath: drivePath,
+        driveFolderPath: driveFolder.id, // GUARDAMOS EL ID REAL DE GOOGLE
         privacySigned: false
       };
+
+      // 2. Actualizamos estados locales
       setAllUsers(prev => [...prev, newUser]);
       setUserPasswords(prev => ({ ...prev, [newSellerEmail]: newSellerPass }));
+      
+      // 3. Limpiamos formulario
       setShowAddSeller(false);
       setNewSellerName('');
       setNewSellerEmail('');
       setNewSellerPass('');
-      alert('Vendedor creado y carpeta sincronizada en Drive.');
+      
+      alert('Vendedor creado y carpeta sincronizada en Google Drive.');
+    } catch (error) {
+      console.error("Error al crear vendedor:", error);
+      alert("Error al crear la carpeta en Google Drive. Verifique su conexión.");
     } finally {
       setIsProcessing(false);
     }
   };
+
 
   const handleDeleteSeller = async (sellerId: string) => {
     if (!confirm('¿Seguro que desea eliminar permanentemente este vendedor y sus archivos asociados?')) return;
@@ -518,36 +534,52 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
     setShowPrivacySignature(false);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
-  const file = e.target.files?.[0];
-  if (!file || !user || !googleToken) return;
-
-  setIsProcessing(true);
-  try {
-    // Fíjate que el await esté directamente aquí, sin "readers" ni "functions" por medio
-    const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
+   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
+    const file = e.target.files?.[0];
     
-    const newDoc: Document = {
-      id: driveRes.id,
-      name: file.name,
-      type: type,
-      url: `https://drive.google.com{driveRes.id}`,
-      status: 'PENDING',
-      uploadDate: new Date().toLocaleDateString('es-ES'),
-      ownerId: targetUser.id,
-      folderPath: targetUser.driveFolderPath
-    };
+    if (!file || !user || !googleToken) {
+      if (!googleToken) alert("Debe vincular su cuenta de Google Drive primero.");
+      return;
+    }
+    
+    const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
+      ? allUsers.find(u => u.id === selectedSellerId) 
+      : user;
 
-    setDocs(prev => [...prev, newDoc]);
-    addLog(targetUser.id, 'UPLOAD', file.name);
-  } catch (err) {
-    console.error(err);
-  } finally { 
-    setIsProcessing(false);
-    e.target.value = '';
-  }
-};
-  
+    if (!targetUser || !targetUser.driveFolderPath) {
+      alert("El usuario no tiene una carpeta de Drive asignada.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // 1. Subida real al servicio de Google usando el ID de la carpeta
+      const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
+
+      // 2. Crear el objeto con el ID real de Google Drive
+      const newDoc: Document = {
+        id: driveRes.id, 
+        name: file.name,
+        type: type,
+        url: `https://drive.google.com{driveRes.id}`, 
+        status: 'PENDING',
+        uploadDate: new Date().toLocaleDateString('es-ES'),
+        ownerId: targetUser.id,
+        folderPath: targetUser.driveFolderPath
+      };
+
+      // 3. Actualizar estados locales y logs
+      setDocs(prev => [...prev, newDoc]);
+      addLog(targetUser.id, 'UPLOAD', file.name);
+
+    } catch (err) {
+      console.error("Error en la sincronización:", err);
+      alert("Error crítico al subir el archivo a Google Drive.");
+    } finally { 
+      setIsProcessing(false);
+      if (e.target) e.target.value = ''; 
+    }
+  };
 const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
     ? allUsers.find(u => u.id === selectedSellerId) 
     : user;
