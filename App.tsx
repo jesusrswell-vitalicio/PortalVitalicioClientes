@@ -534,42 +534,44 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
     setShowPrivacySignature(false);
   };
 
-   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
-  const file = e.target.files?.[0];
-  if (!file || !user || !googleToken) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !googleToken) return;
 
-  const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
-    ? allUsers.find(u => u.id === selectedSellerId) 
-    : user;
+    const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
+      ? allUsers.find(u => u.id === selectedSellerId) 
+      : user;
 
-  if (!targetUser) return;
+    if (!targetUser) return;
 
-  setIsProcessing(true);
-  try {
-    // ESTA ES LA LÍNEA 595. 
-    // Al estar aquí directamente, el 'async' de la cabecera la protege.
-    const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
-    
-    const newDoc: Document = {
-      id: driveRes.id,
-      name: file.name,
-      type: type,
-      url: `https://drive.google.com{driveRes.id}`,
-      status: 'PENDING',
-      uploadDate: new Date().toLocaleDateString('es-ES'),
-      ownerId: targetUser.id,
-      folderPath: targetUser.driveFolderPath
-    };
+    setIsProcessing(true);
+    try {
+      // 1. LLAMADA DIRECTA (Sin reader ni onload)
+      const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
 
-    setDocs(prev => [...prev, newDoc]);
-    addLog(targetUser.id, 'UPLOAD', file.name);
-  } catch (err) {
-    console.error(err);
-  } finally { 
-    setIsProcessing(false);
-    if (e.target) e.target.value = '';
-  }
-};
+      // 2. CREACIÓN DEL OBJETO
+      const newDoc: Document = {
+        id: driveRes.id,
+        name: file.name,
+        type: type,
+        url: `https://drive.google.com{driveRes.id}`,
+        status: 'PENDING',
+        uploadDate: new Date().toLocaleDateString('es-ES'),
+        ownerId: targetUser.id,
+        folderPath: targetUser.driveFolderPath
+      };
+
+      setDocs(prev => [...prev, newDoc]);
+      addLog(targetUser.id, 'UPLOAD', file.name);
+
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Fallo al subir a Drive");
+    } finally { 
+      setIsProcessing(false);
+      if (e.target) e.target.value = '';
+    }
+  };
 const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
     ? allUsers.find(u => u.id === selectedSellerId) 
     : user;
