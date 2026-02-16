@@ -534,7 +534,7 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
     setShowPrivacySignature(false);
   };
 
-  async function handleFileUpload(e: any, type: 'IMAGE' | 'PDF') {
+  const handleFileUpload = async (e: any, type: string) => {
     const file = e.target.files?.[0];
     if (!file || !user || !googleToken) {
       if (!googleToken) alert("Vincule Google Drive primero.");
@@ -549,13 +549,13 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
 
     setIsProcessing(true);
     try {
-      // Esta es la línea que fallaba (587 aprox)
+      // ESTA ES LA LÍNEA 587: Aquí el await funciona porque no hay nada entre él y el async de la línea 1
       const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
 
       const newDoc: Document = {
         id: driveRes.id,
         name: file.name,
-        type: type,
+        type: type as any,
         url: `https://drive.google.com{driveRes.id}`,
         status: 'PENDING',
         uploadDate: new Date().toLocaleDateString('es-ES'),
@@ -565,14 +565,15 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
 
       setDocs(prev => [...prev, newDoc]);
       addLog(targetUser.id, 'UPLOAD', file.name);
+
     } catch (err) {
-      console.error(err);
+      console.error("Error en Drive:", err);
       alert("Error al subir a Google Drive");
     } finally {
       setIsProcessing(false);
       if (e.target) e.target.value = '';
     }
-  }
+  };
 
     
     const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
