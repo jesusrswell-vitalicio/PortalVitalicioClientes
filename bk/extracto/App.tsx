@@ -5,7 +5,7 @@ import Layout from './components/Layout';
 import { UI_CONFIG } from './constants';
 import SignaturePad from './components/SignaturePad';
 import { explainDocument } from './services/geminiService';
-import { driveService } from './services/driveService';
+import { driveService, DriveFolder } from './services/driveService';
 
 const ADMIN_EMAIL = 'jmartinez@grupovitalicio.es';
 const ADMIN_PASS_INITIAL = 'Vitalicio@2020';
@@ -57,8 +57,8 @@ GRUPO VITALICIO VIVIENDA INVERSIONES S.L. C/ ZURBANO 45, 1ª PLANTA – 28010 MA
 `;
 
 const INITIAL_USERS: User[] = [
-  { id: 'admin_1', name: 'J. Martínez', email: ADMIN_EMAIL, role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: 'Mi Unidad/VendedoresExternos/Admin', privacySigned: true },
-  { id: 'v_1', name: 'Antonio García', email: 'antonio@gmail.com', role: UserRole.SELLER, status: 'ACTIVE', driveFolderPath: 'Mi Unidad/VendedoresExternos/Antonio García', privacySigned: false }
+  { id: 'admin_1', name: 'J. Martínez', email: ADMIN_EMAIL, role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: '', privacySigned: true },
+  { id: 'v_1', name: 'Antonio García', email: 'antonio@gmail.com', role: UserRole.SELLER, status: 'ACTIVE', driveFolderPath: '', privacySigned: false }
 ];
 
 const INITIAL_PASSWORDS: Record<string, string> = {
@@ -67,8 +67,147 @@ const INITIAL_PASSWORDS: Record<string, string> = {
 };
 
 const INITIAL_DOCS: Document[] = [
-  { id: 'd1', name: 'Contrato Vitalicio Antonio', type: 'CONTRACT', url: '', status: 'PENDING', uploadDate: '20/05/2024', ownerId: 'v_1', folderPath: 'Mi Unidad/VendedoresExternos/Antonio García' },
+  { id: 'd1', name: 'Contrato Vitalicio Antonio', type: 'CONTRACT', url: '', status: 'PENDING', uploadDate: '20/05/2024', ownerId: 'v_1', folderPath: '' },
 ];
+
+const DrivePickerModal: React.FC<{ 
+  onSelect: (path: string) => void; 
+  onCancel: () => void 
+}> = ({ onSelect, onCancel }) => {
+  const [folders, setFolders] = useState<DriveFolder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  useEffect(() => {
+    driveService.fetchFolders().then(data => {
+      setFolders(data);
+      setLoading(false);
+    });
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn">
+        <div className="bg-[#4285F4] p-8 text-white flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-bold">Seleccionar Carpeta Raíz</h3>
+            <p className="text-sm opacity-90 mt-1">Navega por Google Drive de sguillen@grupovitalicio.es</p>
+          </div>
+          <div className="bg-white/20 p-3 rounded-2xl">
+            <span className="text-3xl">📂</span>
+          </div>
+        </div>
+        
+        <div className="p-8">
+          <div className="bg-slate-50 border rounded-2xl h-80 overflow-y-auto mb-6">
+            {loading ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4">
+                <div className="w-10 h-10 border-4 border-[#4285F4] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cargando Drive...</p>
+              </div>
+            ) : (
+              <div className="p-2">
+                {folders.map(folder => (
+                  <button 
+                    key={folder.id}
+                    onClick={() => setSelectedFolder(folder.path)}
+                    className={`w-full text-left p-4 rounded-xl flex items-center gap-4 transition-all ${
+                      selectedFolder === folder.path ? 'bg-blue-50 border-blue-200 border-2' : 'hover:bg-white'
+                    }`}
+                  >
+                    <span className="text-2xl">📁</span>
+                    <div className="flex-1">
+                      <p className={`font-bold ${selectedFolder === folder.path ? 'text-blue-600' : 'text-gray-700'}`}>
+                        {folder.name}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-mono truncate">{folder.path}</p>
+                    </div>
+                    {selectedFolder === folder.path && <span className="text-blue-600 font-bold">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-4">
+            <button onClick={onCancel} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors">
+              Cancelar
+            </button>
+            <button 
+              onClick={() => selectedFolder && onSelect(selectedFolder)} 
+              disabled={!selectedFolder}
+              className={`flex-1 py-4 rounded-2xl font-bold shadow-xl transition-all ${
+                selectedFolder ? 'bg-[#4285F4] text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Establecer como Raíz
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AuditModal: React.FC<{ logs: LogEntry[], onCancel: () => void }> = ({ logs, onCancel }) => {
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[200] p-6">
+      <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn flex flex-col max-h-[85vh]">
+        <div className="bg-[#a12d34] p-8 text-white flex justify-between items-center shrink-0">
+          <div>
+            <h3 className="text-2xl font-bold">Auditoría de Actividad</h3>
+            <p className="text-sm opacity-90 mt-1 uppercase tracking-widest font-bold">Registro de Eventos Críticos</p>
+          </div>
+          <button onClick={onCancel} className="text-3xl hover:scale-110 transition-transform">×</button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
+          <div className="space-y-4">
+            {logs.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-gray-400 font-bold italic">No hay registros de auditoría disponibles.</p>
+              </div>
+            ) : (
+              logs.slice().reverse().map(log => (
+                <div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 hover:border-[#a12d34]/20 transition-colors">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 ${
+                    log.action === 'DELETE' ? 'bg-red-50' : 
+                    log.action === 'UPLOAD' ? 'bg-blue-50' : 
+                    'bg-green-50'
+                  }`}>
+                    {log.action === 'UPLOAD' && '📤'}
+                    {log.action === 'DELETE' && '🗑️'}
+                    {log.action === 'SIGNATURE' && '✍️'}
+                    {log.action === 'PRIVACY_ACCEPTANCE' && '⚖️'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-gray-800">
+                        {log.action === 'UPLOAD' ? 'Archivo Sincronizado' : 
+                         log.action === 'DELETE' ? 'Eliminación Directa' : 
+                         log.action === 'SIGNATURE' ? 'Firma de Documento' : 
+                         'Aceptación Política Privacidad'}
+                      </p>
+                      <span className="text-[10px] text-gray-400 font-bold font-mono shrink-0 ml-2">{log.timestamp}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">Elemento: <span className="font-bold">{log.fileName}</span></p>
+                    <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Ejecutado por: <span className="text-[#a12d34] font-bold">{log.authorName}</span></p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        
+        <div className="p-6 bg-white border-t flex justify-end shrink-0">
+          <button onClick={onCancel} className="bg-slate-100 hover:bg-slate-200 text-gray-700 px-8 py-3 rounded-xl font-bold transition-all">
+            Cerrar Informe
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CommentsSection: React.FC<{ 
   sellerId: string, 
@@ -168,6 +307,12 @@ const App: React.FC = () => {
   const [userCaptchaInput, setUserCaptchaInput] = useState('');
   const [loginError, setLoginError] = useState('');
   
+  // Drive Connection State
+  const [isDriveConnected, setIsDriveConnected] = useState(() => localStorage.getItem('gv_drive_connected') === 'true');
+  const [showDrivePicker, setShowDrivePicker] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [driveSyncing, setDriveSyncing] = useState(false);
+
   // Privacy Acceptance State
   const [userDniInput, setUserDniInput] = useState('');
   const [dniError, setDniError] = useState('');
@@ -191,7 +336,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_PASSWORDS;
   });
   const [mainDriveFolder, setMainDriveFolder] = useState(() => {
-    return localStorage.getItem('gv_main_drive') || 'Mi Unidad/VendedoresExternos';
+    return localStorage.getItem('gv_main_drive') || '';
   });
   const [comments, setComments] = useState<Comment[]>(() => {
     const saved = localStorage.getItem('gv_comments');
@@ -227,7 +372,25 @@ const App: React.FC = () => {
     localStorage.setItem('gv_main_drive', mainDriveFolder);
     localStorage.setItem('gv_comments', JSON.stringify(comments));
     localStorage.setItem('gv_logs', JSON.stringify(logs));
-  }, [allUsers, userPasswords, docs, mainDriveFolder, comments, logs]);
+    localStorage.setItem('gv_drive_connected', String(isDriveConnected));
+  }, [allUsers, userPasswords, docs, mainDriveFolder, comments, logs, isDriveConnected]);
+
+  const handleDriveConnection = async () => {
+    setDriveSyncing(true);
+    try {
+      await driveService.authenticate();
+      setIsDriveConnected(true);
+      setShowDrivePicker(true);
+    } finally {
+      setDriveSyncing(false);
+    }
+  };
+
+  const onDriveFolderSelected = (path: string) => {
+    setMainDriveFolder(path);
+    setShowDrivePicker(false);
+    alert(`Portal configurado correctamente en: ${path}`);
+  };
 
   const addLog = (sellerId: string, action: LogEntry['action'], fileName: string) => {
     const newLog: LogEntry = {
@@ -274,9 +437,13 @@ const App: React.FC = () => {
 
   const handleAddSeller = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mainDriveFolder) {
+      alert("Debe configurar primero la carpeta raíz de Google Drive en el Panel Global.");
+      return;
+    }
     setIsProcessing(true);
     try {
-      const drivePath = await driveService.createSellerFolder(newSellerName);
+      const drivePath = await driveService.createSellerFolder(newSellerName, mainDriveFolder);
       const newId = 'v_' + Date.now();
       const newUser: User = {
         id: newId,
@@ -456,8 +623,6 @@ const App: React.FC = () => {
         
         const link = document.createElement('a');
         link.href = blobUrl;
-        // Aunque el usuario pide PDF, generamos un HTML auto-contenido que puede imprimirse como PDF
-        // Para mejorar la UX lo descargamos como .html que es el formato real del blob generado
         link.download = doc.name.replace('.pdf', '') + '.html'; 
         document.body.appendChild(link);
         link.click();
@@ -466,7 +631,6 @@ const App: React.FC = () => {
         return;
     }
 
-    // Descarga estándar para PDFs e Imágenes
     const link = document.createElement('a');
     link.href = doc.url;
     link.download = doc.name;
@@ -655,6 +819,28 @@ const App: React.FC = () => {
               ID Sesión: <span className="text-[#a12d34]">{user.id}</span>
             </div>
           </div>
+
+          {/* Banner de configuración Drive si no está conectado */}
+          {!isDriveConnected || !mainDriveFolder ? (
+            <div className="bg-blue-50 border-2 border-blue-200 p-10 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8 shadow-xl animate-scaleIn">
+              <div className="w-24 h-24 bg-[#4285F4] text-white rounded-[2rem] flex items-center justify-center text-4xl shadow-lg">
+                📂
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-2xl font-bold text-blue-800">Conectar con Google Drive</h3>
+                <p className="text-sm text-blue-600 font-medium mt-1 leading-relaxed">
+                  Para empezar a trabajar, debe vincular la cuenta oficial de <b>sguillen@grupovitalicio.es</b> y seleccionar la carpeta donde se almacenarán todos los expedientes de los vendedores.
+                </p>
+              </div>
+              <button 
+                onClick={handleDriveConnection}
+                disabled={driveSyncing}
+                className="bg-[#4285F4] hover:bg-blue-600 text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-xl transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50"
+              >
+                {driveSyncing ? 'Conectando...' : 'Vincular Drive Now'}
+              </button>
+            </div>
+          ) : null}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              <div className={UI_CONFIG.cardClass}>
@@ -663,11 +849,16 @@ const App: React.FC = () => {
                   <h3 className="font-bold text-gray-800">Infraestructura</h3>
                 </div>
                 <div className="space-y-4">
-                   <p className="text-xs text-gray-400">Raíz Drive: <span className="font-bold text-gray-600 block mt-1">{mainDriveFolder}</span></p>
+                   <p className="text-xs text-gray-400">Raíz Drive: <span className="font-bold text-gray-600 block mt-1">{mainDriveFolder || 'SIN CONFIGURAR'}</span></p>
                    <div className="flex items-center gap-2">
-                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                     <p className="text-xs text-green-600 font-bold uppercase tracking-widest">Drive Conectado</p>
+                     <span className={`w-2 h-2 rounded-full animate-pulse ${isDriveConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                     <p className={`text-xs font-bold uppercase tracking-widest ${isDriveConnected ? 'text-green-600' : 'text-red-600'}`}>
+                        {isDriveConnected ? 'Drive Conectado' : 'Sin Conexión'}
+                     </p>
                    </div>
+                   {isDriveConnected && (
+                     <button onClick={() => setShowDrivePicker(true)} className="text-[9px] text-blue-500 font-bold underline hover:text-blue-700">CAMBIAR DIRECTORIO RAÍZ</button>
+                   )}
                 </div>
              </div>
              
@@ -694,7 +885,12 @@ const App: React.FC = () => {
                   <h3 className="font-bold text-gray-800">Seguridad</h3>
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed mb-4">Operaciones auditadas. El Administrador puede supervisar todos los documentos y firmas.</p>
-                <button className="w-full py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors">Ver Auditoría de Drive</button>
+                <button 
+                  onClick={() => setShowAuditModal(true)}
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors"
+                >
+                  Ver Auditoría de Drive
+                </button>
              </div>
           </div>
         </div>
@@ -777,7 +973,7 @@ const App: React.FC = () => {
             <div className="flex gap-3">
                <div className="text-right hidden sm:block">
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Ruta Drive</p>
-                  <p className="text-[10px] text-[#a12d34] font-mono font-bold truncate max-w-[200px]">{currentViewUser?.driveFolderPath}</p>
+                  <p className="text-[10px] text-[#a12d34] font-mono font-bold truncate max-w-[200px]">{currentViewUser?.driveFolderPath || 'PENDIENTE DE ASIGNACIÓN'}</p>
                </div>
             </div>
           </div>
@@ -920,7 +1116,7 @@ const App: React.FC = () => {
                      </div>
                      <div>
                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Directorio Drive Sincronizado</label>
-                       <div className="bg-slate-50 p-4 rounded-xl font-mono text-[10px] text-gray-500 border border-slate-100">{currentViewUser?.driveFolderPath}</div>
+                       <div className="bg-slate-50 p-4 rounded-xl font-mono text-[10px] text-gray-500 border border-slate-100">{currentViewUser?.driveFolderPath || 'SIN CARPETA'}</div>
                      </div>
                      
                      {user.role === UserRole.ADMIN && selectedSellerId && (
@@ -1039,6 +1235,22 @@ const App: React.FC = () => {
             </div>
           </form>
         </div>
+      )}
+
+      {/* MODAL: DRIVE PICKER (ADMIN) */}
+      {showDrivePicker && (
+        <DrivePickerModal 
+          onSelect={onDriveFolderSelected} 
+          onCancel={() => setShowDrivePicker(false)} 
+        />
+      )}
+
+      {/* MODAL: AUDITORIA GLOBAL (ADMIN) */}
+      {showAuditModal && (
+        <AuditModal 
+          logs={logs} 
+          onCancel={() => setShowAuditModal(false)} 
+        />
       )}
     </Layout>
   );
