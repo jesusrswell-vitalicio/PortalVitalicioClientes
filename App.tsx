@@ -535,51 +535,41 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
   };
 
    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
-    const file = e.target.files?.[0];
+  const file = e.target.files?.[0];
+  if (!file || !user || !googleToken) return;
+
+  const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
+    ? allUsers.find(u => u.id === selectedSellerId) 
+    : user;
+
+  if (!targetUser) return;
+
+  setIsProcessing(true);
+  try {
+    // ESTA ES LA LÍNEA 595. 
+    // Al estar aquí directamente, el 'async' de la cabecera la protege.
+    const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
     
-    if (!file || !user || !googleToken) {
-      if (!googleToken) alert("Debe vincular su cuenta de Google Drive primero.");
-      return;
-    }
-    
-    const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
-      ? allUsers.find(u => u.id === selectedSellerId) 
-      : user;
+    const newDoc: Document = {
+      id: driveRes.id,
+      name: file.name,
+      type: type,
+      url: `https://drive.google.com{driveRes.id}`,
+      status: 'PENDING',
+      uploadDate: new Date().toLocaleDateString('es-ES'),
+      ownerId: targetUser.id,
+      folderPath: targetUser.driveFolderPath
+    };
 
-    if (!targetUser || !targetUser.driveFolderPath) {
-      alert("El usuario no tiene una carpeta de Drive asignada.");
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      // 1. Subida real al servicio de Google usando el ID de la carpeta
-      const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
-
-      // 2. Crear el objeto con el ID real de Google Drive
-      const newDoc: Document = {
-        id: driveRes.id, 
-        name: file.name,
-        type: type,
-        url: `https://drive.google.com{driveRes.id}`, 
-        status: 'PENDING',
-        uploadDate: new Date().toLocaleDateString('es-ES'),
-        ownerId: targetUser.id,
-        folderPath: targetUser.driveFolderPath
-      };
-
-      // 3. Actualizar estados locales y logs
-      setDocs(prev => [...prev, newDoc]);
-      addLog(targetUser.id, 'UPLOAD', file.name);
-
-    } catch (err) {
-      console.error("Error en la sincronización:", err);
-      alert("Error crítico al subir el archivo a Google Drive.");
-    } finally { 
-      setIsProcessing(false);
-      if (e.target) e.target.value = ''; 
-    }
-  };
+    setDocs(prev => [...prev, newDoc]);
+    addLog(targetUser.id, 'UPLOAD', file.name);
+  } catch (err) {
+    console.error(err);
+  } finally { 
+    setIsProcessing(false);
+    if (e.target) e.target.value = '';
+  }
+};
 const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
     ? allUsers.find(u => u.id === selectedSellerId) 
     : user;
@@ -626,32 +616,32 @@ const targetUser = user.role === UserRole.ADMIN && selectedSellerId
     if (!targetUser) return;
 
     setIsProcessing(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const fileDataUrl = event.target?.result as string;
-       await driveService.syncDocument(file.name, targetUser.driveFolderPath);
-        const newDoc: Document = {
-          id: 'd_' + Date.now(),
-          name: file.name,
-          type: type,
-          url: fileDataUrl,
-          status: 'PENDING',
-          uploadDate: new Date().toLocaleDateString('es-ES'),
-          ownerId: targetUser.id,
-          folderPath: targetUser.driveFolderPath
-        };
-        setDocs(prev => [...prev, newDoc]);
-        addLog(targetUser.id, 'UPLOAD', file.name);
-        setIsProcessing(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      setIsProcessing(false);
-    } finally { 
-      e.target.value = '';
-    }
-  };
+  try {
+    // 1. LLAMADA DIRECTA (Sin reader): Subimos el archivo real
+    const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken!);
+
+    // 2. CREACIÓN DEL OBJETO (Usando los datos de Google)
+    const newDoc: Document = {
+      id: driveRes.id, 
+      name: file.name,
+      type: type,
+      url: `https://drive.google.com{driveRes.id}`, 
+      status: 'PENDING',
+      uploadDate: new Date().toLocaleDateString('es-ES'),
+      ownerId: targetUser.id,
+      folderPath: targetUser.driveFolderPath
+    };
+
+    setDocs(prev => [...prev, newDoc]);
+    addLog(targetUser.id, 'UPLOAD', file.name);
+
+  } catch (err) {
+    console.error("Error:", err);
+    alert("Fallo al subir a Drive");
+  } finally { 
+    setIsProcessing(false);
+    e.target.value = '';
+  }
 
   const handleDeleteDoc = async (docId: string) => {
     const doc = docs.find(d => d.id === docId);
