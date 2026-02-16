@@ -520,24 +520,13 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
   const file = e.target.files?.[0];
-  
-  if (!file || !user || !googleToken) {
-    if (!googleToken) alert("Debe vincular su cuenta de Google Drive primero.");
-    return;
-  }
-  
-  const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
-    ? allUsers.find(u => u.id === selectedSellerId) 
-    : user;
-
-  if (!targetUser) return;
+  if (!file || !user || !googleToken) return;
 
   setIsProcessing(true);
   try {
-    // 1. Llamada al servicio
+    // Fíjate que el await esté directamente aquí, sin "readers" ni "functions" por medio
     const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken);
     
-    // 2. Crear documento
     const newDoc: Document = {
       id: driveRes.id,
       name: file.name,
@@ -549,20 +538,17 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
       folderPath: targetUser.driveFolderPath
     };
 
-    // 3. Actualizar estados
     setDocs(prev => [...prev, newDoc]);
     addLog(targetUser.id, 'UPLOAD', file.name);
-
   } catch (err) {
-    console.error("Error:", err);
-    alert("Error al subir a Google Drive");
+    console.error(err);
   } finally { 
     setIsProcessing(false);
     e.target.value = '';
   }
-}; // <--- ESTA ES LA ÚNICA LLAVE QUE DEBE CERRAR LA FUNCIÓN
+};
   
-  const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
+const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
     ? allUsers.find(u => u.id === selectedSellerId) 
     : user;
 
@@ -612,7 +598,7 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
       const reader = new FileReader();
       reader.onload = async (event) => {
         const fileDataUrl = event.target?.result as string;
-        await driveService.syncDocument(file.name, targetUser.driveFolderPath);
+       await driveService.syncDocument(file.name, targetUser.driveFolderPath);
         const newDoc: Document = {
           id: 'd_' + Date.now(),
           name: file.name,
