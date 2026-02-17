@@ -79,13 +79,30 @@ const DrivePickerModal: React.FC<{
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!googleToken) return;
-    driveService.fetchFolders(googleToken).then(data => {
-      setFolders(data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [googleToken]);
+ useEffect(() => {
+  // 1. Si el modal se abre y no hay token, avisamos y cerramos el cargando
+  if (!googleToken) {
+    console.warn("Intento de carga sin token de Google");
+    setLoading(false);
+    return;
+  }
+
+  setLoading(true); // Forzamos estado de carga al empezar
+
+  // 2. Llamada con gestión de errores real
+  driveService.fetchFolders(googleToken)
+    .then(data => {
+      console.log("Datos recibidos de Drive:", data);
+      setFolders(data || []); 
+    })
+    .catch(err => {
+      console.error("Error capturado en el Modal:", err);
+      alert("Error de conexión con Google: Revisa los permisos.");
+    })
+    .finally(() => {
+      setLoading(false); // ESTO SE EJECUTA SIEMPRE (Pase lo que pase)
+    });
+}, [googleToken]);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
