@@ -71,69 +71,50 @@ const INITIAL_DOCS: Document[] = [
 ];
 
 const DrivePickerModal: React.FC<{ 
-  onSelect: (path: string) => void; 
+  onSelect: (id: string) => void; // Cambiado a id
   onCancel: () => void;
-  googleToken: string | null; 
+  googleToken: string | null;
 }> = ({ onSelect, onCancel, googleToken }) => {
-  const [folders, setFolders] = useState<DriveFolder[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-//AQUI
- useEffect(() => {
-  // Solo pedimos las carpetas si tenemos el TOKEN
-  if (googleToken) {
-    driveService.fetchFolders(googleToken)
-      .then(data => {
-        setFolders(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error al obtener carpetas:", err);
-        setLoading(false);
-      });
-  } else {
-    // Si no hay token, simplemente dejamos de cargar para que no se quede el círculo dando vueltas
-    setLoading(false);
-  }
-}, [googleToken]); // <--- AQUÍ: Asegúrate de que SOLO esté googleToken
+
+  useEffect(() => {
+    if (!googleToken) return;
+    driveService.fetchFolders(googleToken).then(data => {
+      setFolders(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [googleToken]);
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn">
-        <div className="bg-[#4285F4] p-8 text-white flex justify-between items-center">
-          <div>
-            <h3 className="text-2xl font-bold">Seleccionar Carpeta Raíz</h3>
-            <p className="text-sm opacity-90 mt-1">Navega por Google Drive de sguillen@grupovitalicio.es</p>
-          </div>
-          <div className="bg-white/20 p-3 rounded-2xl">
-            <span className="text-3xl">📂</span>
-          </div>
-        </div>
-        
+        {/* ... (cabecera igual) ... */}
         <div className="p-8">
           <div className="bg-slate-50 border rounded-2xl h-80 overflow-y-auto mb-6">
             {loading ? (
-              <div className="h-full flex flex-col items-center justify-center gap-4">
-                <div className="w-10 h-10 border-4 border-[#4285F4] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cargando Drive...</p>
-              </div>
+               <div className="h-full flex items-center justify-center">Cargando Drive...</div>
             ) : (
               <div className="p-2">
                 {folders.map(folder => (
                   <button 
                     key={folder.id}
-                    onClick={() => setSelectedFolder(folder.path)}
+                    // CAMBIO 1: Guardamos el ID, no el path
+                    onClick={() => setSelectedFolder(folder.id)} 
                     className={`w-full text-left p-4 rounded-xl flex items-center gap-4 transition-all ${
-                      selectedFolder === folder.path ? 'bg-blue-50 border-blue-200 border-2' : 'hover:bg-white'
+                      // CAMBIO 2: Comparamos contra el ID
+                      selectedFolder === folder.id ? 'bg-blue-50 border-blue-200 border-2' : 'hover:bg-white'
                     }`}
                   >
                     <span className="text-2xl">📁</span>
                     <div className="flex-1">
-                      <p className={`font-bold ${selectedFolder === folder.path ? 'text-blue-600' : 'text-gray-700'}`}>
+                      <p className={`font-bold ${selectedFolder === folder.id ? 'text-blue-600' : 'text-gray-700'}`}>
                         {folder.name}
                       </p>
-                      <p className="text-[10px] text-gray-400 font-mono truncate">{folder.path}</p>
+                      <p className="text-[10px] text-gray-400 font-mono truncate">{folder.id}</p>
                     </div>
-                    {selectedFolder === folder.path && <span className="text-blue-600 font-bold">✓</span>}
+                    {selectedFolder === folder.id && <span className="text-blue-600 font-bold">✓</span>}
                   </button>
                 ))}
               </div>
@@ -141,14 +122,13 @@ const DrivePickerModal: React.FC<{
           </div>
 
           <div className="flex gap-4">
-            <button onClick={onCancel} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors">
-              Cancelar
-            </button>
+            <button onClick={onCancel} className="flex-1 py-4 font-bold text-gray-400">Cancelar</button>
             <button 
+              // CAMBIO 3: Ahora selectedFolder tiene el ID y activará el botón
               onClick={() => selectedFolder && onSelect(selectedFolder)} 
               disabled={!selectedFolder}
               className={`flex-1 py-4 rounded-2xl font-bold shadow-xl transition-all ${
-                selectedFolder ? 'bg-[#4285F4] text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                selectedFolder ? 'bg-[#4285F4] text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
               Establecer como Raíz
@@ -159,7 +139,6 @@ const DrivePickerModal: React.FC<{
     </div>
   );
 };
-
 const AuditModal: React.FC<{ logs: LogEntry[], onCancel: () => void }> = ({ logs, onCancel }) => {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[200] p-6">
