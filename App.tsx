@@ -396,7 +396,8 @@ const handleDriveConnection = () => {
       }
     },
   });
-
+ client.requestAccessToken();
+}; // <-- Llave de la función principal
 
 
   const onDriveFolderSelected = (path: string) => {
