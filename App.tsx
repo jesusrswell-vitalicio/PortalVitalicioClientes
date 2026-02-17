@@ -385,11 +385,19 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
     localStorage.setItem('gv_drive_connected', String(isDriveConnected));
   }, [allUsers, userPasswords, docs, mainDriveFolder, comments, logs, isDriveConnected]);
 
- const handleDriveConnection = () => {
-  const client = window.google.accounts.oauth2.initTokenClient({
-    client_id: 'C00ogjb9x.apps.googleusercontent.com',
-    scope: 'https://www.googleapis.com',
+ 
+
+const handleDriveConnection = () => {
+  // Asegúrate de que el client_id sea el completo que copiaste de la consola
+  const client = (window as any).google.accounts.oauth2.initTokenClient({
+    client_id: 'C00ogjb9x.apps.googleusercontent.com', 
+    // SCOPES: Necesitamos explícitamente permisos de lectura y archivos
+    scope: 'https://www.googleapis.com https://www.googleapis.com',
     callback: (response: any) => {
+      if (response.error) {
+        console.error("Error de Google:", response.error);
+        return;
+      }
       setGoogleToken(response.access_token);
       localStorage.setItem('gv_token', response.access_token);
       setIsDriveConnected(true);
@@ -397,7 +405,11 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
     },
   });
   client.requestAccessToken();
-};
+ };
+
+
+
+
 
   const onDriveFolderSelected = (path: string) => {
     setMainDriveFolder(path);
