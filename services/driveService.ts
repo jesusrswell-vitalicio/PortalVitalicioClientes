@@ -7,28 +7,32 @@ const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files?uploadType=
 export interface DriveFolder {
   id: string;
   name: string;
-  path: string;
 }
 
-export const driveService = {
-  // 1. Obtener carpetas reales
-  fetchFolders: async (token: string): Promise<DriveFolder[]> => {
-    const query = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false");
-    const url = `${DRIVE_API}?q=${query}&fields=files(id, name)`;
+const handleResponse = async (response: Response) => {
+  if (response.status === 401) {
+    localStorage.removeItem('gv_token');
+    throw new Error("SESION_EXPIRED");
+  }
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || "Error en la API de Google");
+  return data;
+};
 
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      return data.files?.map((f: any) => ({ id: f.id, name: f.name, path: f.name })) || [];
-    } catch (error) {
-      console.error("Error fetchFolders:", error);
-      return [];
-    }
+export const driveService = {
+  // Obtener carpetas reales de una ubicación específica
+  fetchFolders: async (token: string, parentId: string = 'root'): Promise<DriveFolder[]> => {
+    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
+    const url = `${DRIVE_API}?q=${query}&fields=files(id, name)&orderBy=name`;
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await handleResponse(response);
+    return data.files || [];
   },
 
-  // 2. Crear carpeta de vendedor
+  // Crear carpeta física en Drive
   createSellerFolder: async (sellerName: string, parentId: string, token: string) => {
     const metadata = {
       name: sellerName,
@@ -43,10 +47,10 @@ export const driveService = {
       },
       body: JSON.stringify(metadata)
     });
-    return await response.json();
+    return await handleResponse(response);
   },
 
-  // 3. Subir archivo
+  // Subida real Multipart (Metadatos + Binario)
   syncDocument: async (file: File, folderId: string, token: string) => {
     const metadata = { 
         name: file.name, 
@@ -62,19 +66,19 @@ export const driveService = {
       headers: { Authorization: `Bearer ${token}` },
       body: formData
     });
-    return await response.json();
+    return await handleResponse(response);
   },
 
-  // 4. Eliminar
+  // Eliminar de Drive (físicamente)
   deleteFile: async (fileId: string, token: string) => {
-    await fetch(`${DRIVE_API}/${fileId}`, {
+    const response = await fetch(`${DRIVE_API}/${fileId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
+    if (response.status !== 204 && response.status !== 404) {
+        await handleResponse(response);
+    }
   },
 
-  // 5. Generar URL de vista
-  getFolderViewUrl: (folderId: string) => {
-    return `https://drive.google.com/drive/folders/${folderId}`;
-  }
+  getFolderViewUrl: (folderId: string) => `https://drive.google.com/drive/folders/${folderId}`
 };

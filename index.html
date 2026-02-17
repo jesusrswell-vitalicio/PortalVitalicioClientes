@@ -3,44 +3,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grupo Vitalicio - Portal de Gestión</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Grupo Vitalicio - Portal de Producción</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- URL CORREGIDA DEL SDK DE GOOGLE -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #a12d34;
+            --secondary: #C5A059;
+        }
         body {
             font-family: 'Open Sans', sans-serif;
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
         }
-        h1, h2, h3, h4, .font-montserrat {
-            font-family: 'Montserrat', sans-serif;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fadeIn {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-        .animate-scaleIn {
-            animation: scaleIn 0.3s ease-out forwards;
-        }
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #a12d34;
-            border-radius: 5px;
-        }
+        h1, h2, h3, h4, .font-montserrat { font-family: 'Montserrat', sans-serif; }
+        .btn-shadow { shadow-lg transition-all active:scale-95 active:shadow-inner; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slideUp { animation: slideUp 0.4s ease-out forwards; }
+        
+        /* Estilos para abuelos: fuentes grandes y contrastes altos */
+        input, button { font-size: 1.1rem !important; }
+        .text-senior { font-size: 1.125rem; line-height: 1.75rem; }
     </style>
 <script type="importmap">
 {
