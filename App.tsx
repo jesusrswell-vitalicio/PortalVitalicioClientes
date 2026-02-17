@@ -383,7 +383,7 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
 
 const handleDriveConnection = () => {
   const client = (window as any).google.accounts.oauth2.initTokenClient({
-    client_id: 'TU_CLIENT_ID_COMPLETO.apps.googleusercontent.com',
+    client_id: '483714227791-od4sq0uq140cdtmvr7heq0qt3q89p74u.apps.googleusercontent.com',
     // IMPORTANTE: Estos scopes son los que permiten VER las carpetas
     scope: 'https://www.googleapis.com https://www.googleapis.com',
     callback: (response: any) => {
