@@ -13,7 +13,7 @@ const App: React.FC = () => {
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('gv_users');
     return saved ? JSON.parse(saved) : [
-      { id: 'admin_1', name: 'Admin Principal', email: 'jmartinez@grupovitalicio.es', password: '123', role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: '', privacySigned: true }
+      { id: 'admin_1', name: 'Admin Principal', email: 'jmartinez@grupovitalicio.es', password: 'Vitalicio@2020', role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: '', privacySigned: true }
     ];
   });
 
@@ -445,7 +445,6 @@ const App: React.FC = () => {
   );
 };
 
-// ... DrivePickerModal permanece igual que en la versión robusta anterior ...
 const DrivePickerModal: React.FC<{ 
   googleToken: string | null; 
   onCancel: () => void; 
