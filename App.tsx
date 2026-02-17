@@ -72,18 +72,31 @@ const INITIAL_DOCS: Document[] = [
 
 const DrivePickerModal: React.FC<{ 
   onSelect: (path: string) => void; 
-  onCancel: () => void 
-}> = ({ onSelect, onCancel }) => {
+  onCancel: () => void;
+  googleToken: string | null; 
+}> = ({ onSelect, onCancel, googleToken }) => {
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-
+//AQUI
   useEffect(() => {
-    driveService.fetchFolders().then(data => {
-      setFolders(data);
+    // Si no hay token, no intentes llamar a Google o dará error
+    if (!googleToken) {
+      console.error("No hay token de Google disponible");
       setLoading(false);
-    });
-  }, []);
+      return;
+    }
+
+    driveService.fetchFolders(googleToken)
+      .then(data => {
+        setFolders(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error cargando carpetas:", err);
+        setLoading(false); // Apagamos el cargando aunque falle
+      });
+  }, [googleToken]); // Se ejecutará cuando el token esté listo
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
@@ -1268,6 +1281,7 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
         <DrivePickerModal 
           onSelect={onDriveFolderSelected} 
           onCancel={() => setShowDrivePicker(false)} 
+          googleToken={googleToken} // <--- ESTO ES LO QUE AÑADIMOS
         />
       )}
 
