@@ -15,24 +15,28 @@ const handleResponse = async (response: Response) => {
     throw new Error("SESION_EXPIRED");
   }
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || "Error en la conexión con Google Drive");
+  if (!response.ok) throw new Error(data.error?.message || "Error en Drive");
   return data;
 };
 
 export const driveService = {
-  // Lista carpetas reales dentro de un padre específico (por defecto root)
   fetchFolders: async (token: string, parentId: string = 'root'): Promise<DriveFolder[]> => {
     const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
     const url = `${DRIVE_API}?q=${query}&fields=files(id, name)&orderBy=name`;
-
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const data = await handleResponse(response);
     return data.files || [];
   },
 
-  // Crea físicamente una carpeta para un vendedor
+  // Nueva función para traer archivos (fotos y pdfs) de una carpeta
+  fetchFilesFromFolder: async (token: string, folderId: string) => {
+    const query = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+    const url = `${DRIVE_API}?q=${query}&fields=files(id, name, mimeType, webViewLink, thumbnailLink)&orderBy=createdTime desc`;
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await handleResponse(response);
+    return data.files || [];
+  },
+
   createSellerFolder: async (sellerName: string, parentId: string, token: string) => {
     const metadata = {
       name: `Expediente - ${sellerName}`,
@@ -41,26 +45,17 @@ export const driveService = {
     };
     const response = await fetch(DRIVE_API, {
       method: 'POST',
-      headers: { 
-        Authorization: `Bearer ${token}`, 
-        'Content-Type': 'application/json' 
-      },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(metadata)
     });
     return await handleResponse(response);
   },
 
-  // Sincronización real de archivos (Multipart: Metadatos + Archivo)
   syncDocument: async (file: File, folderId: string, token: string) => {
-    const metadata = { 
-        name: file.name, 
-        parents: [folderId] 
-    };
-    
+    const metadata = { name: file.name, parents: [folderId] };
     const formData = new FormData();
     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     formData.append('file', file);
-
     const response = await fetch(UPLOAD_API, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -69,16 +64,11 @@ export const driveService = {
     return await handleResponse(response);
   },
 
-  // Borrado real en Drive
   deleteFile: async (fileId: string, token: string) => {
     const response = await fetch(`${DRIVE_API}/${fileId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (response.status !== 204 && response.status !== 404) {
-        await handleResponse(response);
-    }
-  },
-
-  getFolderViewUrl: (folderId: string) => `https://drive.google.com/drive/folders/${folderId}`
+    if (response.status !== 204 && response.status !== 404) await handleResponse(response);
+  }
 };
