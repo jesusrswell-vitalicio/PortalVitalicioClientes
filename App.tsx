@@ -380,7 +380,7 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
 
  const handleDriveConnection = () => {
   const client = window.google.accounts.oauth2.initTokenClient({
-    client_id: 'TU_CLIENT_ID_DE_GOOGLE.apps.googleusercontent.com',
+    client_id: 'C00ogjb9x.apps.googleusercontent.com',
     scope: 'https://www.googleapis.com',
     callback: (response: any) => {
       setGoogleToken(response.access_token);
@@ -575,41 +575,7 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
     }
   };
 
-    
-    const targetUser = user.role === UserRole.ADMIN && selectedSellerId 
-      ? allUsers.find(u => u.id === selectedSellerId) 
-      : user;
-
-    if (!targetUser) return;
-
-    setIsProcessing(true);
-  try {
-    // 1. LLAMADA DIRECTA (Sin reader): Subimos el archivo real
-    const driveRes = await driveService.syncDocument(file, targetUser.driveFolderPath, googleToken!);
-
-    // 2. CREACIÓN DEL OBJETO (Usando los datos de Google)
-    const newDoc: Document = {
-      id: driveRes.id, 
-      name: file.name,
-      type: type,
-      url: `https://drive.google.com{driveRes.id}`, 
-      status: 'PENDING',
-      uploadDate: new Date().toLocaleDateString('es-ES'),
-      ownerId: targetUser.id,
-      folderPath: targetUser.driveFolderPath
-    };
-
-    setDocs(prev => [...prev, newDoc]);
-    addLog(targetUser.id, 'UPLOAD', file.name);
-
-  } catch (err) {
-    console.error("Error:", err);
-    alert("Fallo al subir a Drive");
-  } finally { 
-    setIsProcessing(false);
-    e.target.value = '';
-  }
-
+   
   const handleDeleteDoc = async (docId: string) => {
     const doc = docs.find(d => d.id === docId);
     if (!doc) return;
