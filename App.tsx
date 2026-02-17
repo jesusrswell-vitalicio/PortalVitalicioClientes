@@ -80,23 +80,19 @@ const DrivePickerModal: React.FC<{
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 //AQUI
   useEffect(() => {
-    // Si no hay token, no intentes llamar a Google o dará error
-    if (!googleToken) {
-      console.error("No hay token de Google disponible");
-      setLoading(false);
-      return;
-    }
+  // En lugar de console.error, simplemente no hacemos nada si no hay token aún
+  if (!googleToken) return; 
 
-    driveService.fetchFolders(googleToken)
-      .then(data => {
-        setFolders(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error cargando carpetas:", err);
-        setLoading(false); // Apagamos el cargando aunque falle
-      });
-  }, [googleToken]); // Se ejecutará cuando el token esté listo
+  driveService.fetchFolders(googleToken)
+    .then(data => {
+      setFolders(data);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error("Error al obtener carpetas:", err);
+      setLoading(false);
+    });
+}, [googleToken, showDrivePicker]); // Añade showDrivePicker a la vigilancia
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
