@@ -15,12 +15,12 @@ const handleResponse = async (response: Response) => {
     throw new Error("SESION_EXPIRED");
   }
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || "Error en la API de Google");
+  if (!response.ok) throw new Error(data.error?.message || "Error en la conexión con Google Drive");
   return data;
 };
 
 export const driveService = {
-  // Obtener carpetas reales de una ubicación específica
+  // Lista carpetas reales dentro de un padre específico (por defecto root)
   fetchFolders: async (token: string, parentId: string = 'root'): Promise<DriveFolder[]> => {
     const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
     const url = `${DRIVE_API}?q=${query}&fields=files(id, name)&orderBy=name`;
@@ -32,10 +32,10 @@ export const driveService = {
     return data.files || [];
   },
 
-  // Crear carpeta física en Drive
+  // Crea físicamente una carpeta para un vendedor
   createSellerFolder: async (sellerName: string, parentId: string, token: string) => {
     const metadata = {
-      name: sellerName,
+      name: `Expediente - ${sellerName}`,
       mimeType: "application/vnd.google-apps.folder",
       parents: [parentId]
     };
@@ -50,7 +50,7 @@ export const driveService = {
     return await handleResponse(response);
   },
 
-  // Subida real Multipart (Metadatos + Binario)
+  // Sincronización real de archivos (Multipart: Metadatos + Archivo)
   syncDocument: async (file: File, folderId: string, token: string) => {
     const metadata = { 
         name: file.name, 
@@ -69,7 +69,7 @@ export const driveService = {
     return await handleResponse(response);
   },
 
-  // Eliminar de Drive (físicamente)
+  // Borrado real en Drive
   deleteFile: async (fileId: string, token: string) => {
     const response = await fetch(`${DRIVE_API}/${fileId}`, {
       method: 'DELETE',
