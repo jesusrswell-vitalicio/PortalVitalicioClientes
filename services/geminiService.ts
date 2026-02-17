@@ -1,7 +1,8 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Siempre usar process.env.API_KEY directamente según las guías
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const explainDocument = async (docContent: string) => {
   try {
@@ -13,6 +14,7 @@ export const explainDocument = async (docContent: string) => {
         temperature: 0.7,
       },
     });
+    // Acceder directamente a .text como propiedad, no como método
     return response.text;
   } catch (error) {
     console.error("Error explaining document:", error);
@@ -29,6 +31,7 @@ export const chatWithAssistant = async (query: string, history: any[]) => {
             }
         });
         const response = await chat.sendMessage({ message: query });
+        // Acceder directamente a .text como propiedad
         return response.text;
     } catch (error) {
         return "No puedo responder ahora mismo, ¿podrías intentarlo de nuevo más tarde?";

@@ -1,6 +1,8 @@
+
 /// services/driveService.ts
 
-const DRIVE_ENDPOINT = "https://www.googleapis.com";
+const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
+const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
 
 export interface DriveFolder {
   id: string;
@@ -12,7 +14,7 @@ export const driveService = {
   // 1. Obtener carpetas reales
   fetchFolders: async (token: string): Promise<DriveFolder[]> => {
     const query = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false");
-    const url = `${DRIVE_ENDPOINT}?q=${query}&fields=files(id, name)`;
+    const url = `${DRIVE_API}?q=${query}&fields=files(id, name)`;
 
     try {
       const response = await fetch(url, {
@@ -33,9 +35,12 @@ export const driveService = {
       mimeType: "application/vnd.google-apps.folder",
       parents: [parentId]
     };
-    const response = await fetch(DRIVE_ENDPOINT, {
+    const response = await fetch(DRIVE_API, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: { 
+        Authorization: `Bearer ${token}`, 
+        'Content-Type': 'application/json' 
+      },
       body: JSON.stringify(metadata)
     });
     return await response.json();
@@ -43,12 +48,16 @@ export const driveService = {
 
   // 3. Subir archivo
   syncDocument: async (file: File, folderId: string, token: string) => {
-    const metadata = { name: file.name, parents: [folderId] };
+    const metadata = { 
+        name: file.name, 
+        parents: [folderId] 
+    };
+    
     const formData = new FormData();
     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     formData.append('file', file);
 
-    const response = await fetch("https://www.googleapis.com", {
+    const response = await fetch(UPLOAD_API, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData
@@ -58,9 +67,14 @@ export const driveService = {
 
   // 4. Eliminar
   deleteFile: async (fileId: string, token: string) => {
-    await fetch(`${DRIVE_ENDPOINT}/${fileId}`, {
+    await fetch(`${DRIVE_API}/${fileId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
+  },
+
+  // 5. Generar URL de vista
+  getFolderViewUrl: (folderId: string) => {
+    return `https://drive.google.com/drive/folders/${folderId}`;
   }
-}; // <--- ESTA LLAVE CIERRA EL OBJETO
+};
