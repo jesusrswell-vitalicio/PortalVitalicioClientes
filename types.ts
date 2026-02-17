@@ -40,7 +40,7 @@ export interface Note {
 export interface LogEntry {
   id: string;
   sellerId?: string;
-  action: 'LOGIN' | 'UPLOAD' | 'DELETE' | 'PASSWORD_CHANGE' | 'PRIVACY_SIGN' | 'NOTE_ADD';
+  action: 'LOGIN' | 'UPLOAD' | 'DELETE' | 'PASSWORD_CHANGE' | 'PRIVACY_SIGN' | 'NOTE_ADD' | 'NAVIGATE' | 'VIEW_FILE' | 'LOGOUT';
   description: string;
   authorName: string;
   timestamp: string;

@@ -12,7 +12,6 @@ const App: React.FC = () => {
   // --- ESTADO PERSISTENTE ---
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('gv_users');
-    // Explicitly typing defaultAdmin as User to fix the status literal type compatibility error
     const defaultAdmin: User = { 
       id: 'admin_1', 
       name: 'Admin Principal', 
@@ -28,8 +27,6 @@ const App: React.FC = () => {
     
     try {
       const parsedUsers: User[] = JSON.parse(saved);
-      // Forzamos que el admin principal tenga siempre la clave correcta solicitada
-      // para evitar bloqueos por sesiones antiguas en el navegador.
       return parsedUsers.map(u => 
         u.email.toLowerCase() === 'jmartinez@grupovitalicio.es' 
           ? { ...u, password: 'Vitalicio@2020' } 
@@ -77,6 +74,7 @@ const App: React.FC = () => {
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [showAddSeller, setShowAddSeller] = useState(false);
   const [previewFile, setPreviewFile] = useState<any | null>(null);
+  const [dniInput, setDniInput] = useState('');
 
   // --- PERSISTENCIA ---
   useEffect(() => {
@@ -86,6 +84,13 @@ const App: React.FC = () => {
     localStorage.setItem('gv_main_drive', mainDriveFolder);
     if (user) localStorage.setItem('gv_current_user', JSON.stringify(user));
   }, [allUsers, logs, notes, mainDriveFolder, user]);
+
+  // Registro de navegación por bitácora
+  useEffect(() => {
+    if (user && user.role === UserRole.SELLER) {
+      addLog('NAVIGATE', `Usuario cambió a la pestaña: ${activeTab}`, user.id);
+    }
+  }, [activeTab]);
 
   // --- LOGICA DE DRIVE ---
   const refreshFiles = useCallback(async () => {
@@ -139,19 +144,30 @@ const App: React.FC = () => {
     setActiveTab(found.role === UserRole.ADMIN ? 'admin-dashboard' : 'dashboard');
   };
 
+  const handleLogout = () => {
+    if (user) {
+      addLog('LOGOUT', `Cierre de sesión: ${user.email}`, user.role === UserRole.SELLER ? user.id : undefined);
+    }
+    setUser(null);
+    localStorage.removeItem('gv_current_user');
+  };
+
   const handleUpdatePassword = (newPass: string, targetUserId?: string) => {
     const uid = targetUserId || user?.id;
     if (!uid) return;
     setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, password: newPass } : u));
-    addLog('PASSWORD_CHANGE', `Cambio de contraseña para usuario ID: ${uid}`);
+    addLog('PASSWORD_CHANGE', `Cambio de contraseña para usuario ID: ${uid}`, user?.role === UserRole.SELLER ? user.id : undefined);
     alert("Contraseña actualizada con éxito.");
   };
 
   const handleSignPrivacy = (signature: string) => {
     if (!user) return;
-    setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, privacySigned: true } : u));
-    setUser({ ...user, privacySigned: true });
-    addLog('PRIVACY_SIGN', "Firma de aceptación de privacidad completada.");
+    if (!dniInput.trim()) return alert("Debe introducir su DNI para firmar.");
+    
+    const updatedUser = { ...user, privacySigned: true, dni: dniInput };
+    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+    setUser(updatedUser);
+    addLog('PRIVACY_SIGN', `Aceptación de privacidad firmada y almacenada con DNI: ${dniInput}`, user.id);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,7 +191,7 @@ const App: React.FC = () => {
     if (!confirm(`¿Seguro que desea eliminar ${name}?`) || !googleToken) return;
     try {
       await driveService.deleteFile(id, googleToken);
-      addLog('DELETE', `Eliminado archivo: ${name}`);
+      addLog('DELETE', `Eliminado archivo: ${name}`, user?.role === UserRole.SELLER ? user.id : undefined);
       refreshFiles();
       setPreviewFile(null);
     } catch (err) { alert("Error al eliminar"); }
@@ -196,6 +212,13 @@ const App: React.FC = () => {
     };
     setNotes(prev => [...prev, newNote]);
     addLog('NOTE_ADD', "Añadida nota al expediente", targetSellerId);
+  };
+
+  const handleOpenPreview = (file: any) => {
+    setPreviewFile(file);
+    if (user && user.role === UserRole.SELLER) {
+      addLog('VIEW_FILE', `Visualizado archivo: ${file.name}`, user.id);
+    }
   };
 
   if (!user) {
@@ -224,20 +247,42 @@ const App: React.FC = () => {
     );
   }
 
-  // --- EL RESTO DEL COMPONENTE SE MANTIENE IGUAL ---
+  // --- PANTALLA DE FIRMA OBLIGATORIA (POLITICA DE PRIVACIDAD) ---
   if (user.role === UserRole.SELLER && !user.privacySigned) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
-         <div className="max-w-2xl text-center space-y-8">
-            <span className="text-8xl">📑</span>
-            <h2 className="text-4xl font-bold text-gray-800">Compromiso de Privacidad</h2>
-            <div className="bg-slate-50 p-10 rounded-[3rem] text-left text-senior text-gray-600 leading-relaxed max-h-[40vh] overflow-y-auto border-2">
-               <p className="font-bold mb-4">GRUPO VITALICIO - PROTECCIÓN DE DATOS</p>
-               <p>Como colaborador externo, usted se compromete a tratar toda la información de los clientes con absoluta confidencialidad. Queda terminantemente prohibido el uso de fotos o documentos fuera de esta plataforma segura. Sus acciones quedan registradas para auditoría legal.</p>
-               <p className="mt-4">Al firmar abajo, usted acepta los términos y condiciones de uso del portal.</p>
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 md:p-10">
+         <div className="max-w-4xl w-full bg-white rounded-[4rem] shadow-2xl overflow-hidden animate-slideUp">
+            <div className="bg-[#a12d34] p-10 text-white text-center">
+               <h2 className="text-4xl font-bold">Aviso Legal y Política de Privacidad</h2>
+               <p className="mt-2 opacity-80 font-bold uppercase tracking-widest text-xs">GRUPO VITALICIO VIVIENDA INVERSIONES, S.L.</p>
             </div>
-            <p className="text-red-600 font-bold">Debe firmar para poder empezar a trabajar.</p>
-            <SignaturePad onSave={handleSignPrivacy} onCancel={() => setUser(null)} />
+            
+            <div className="p-10 space-y-8">
+               <div className="bg-slate-50 p-10 rounded-[3rem] text-left text-senior text-gray-700 leading-relaxed max-h-[50vh] overflow-y-auto border-2 shadow-inner">
+                  <p className="font-bold text-xl mb-6">1. INFORMACIÓN AL USUARIO</p>
+                  <p className="mb-4"><strong>Responsable del tratamiento:</strong> GRUPO VITALICIO VIVIENDA INVERSIONES, S.L. con domicilio social en CALLE ZURBANO 45, 1ª PLANTA, 28010 DE MADRID.</p>
+                  <p className="mb-4"><strong>Finalidad:</strong> Los datos serán tratados para dar respuesta a consultas, realizar análisis estadísticos, enviar presupuestos comerciales y la ejecución de contratos o precontratos (art. 6.1.b y 6.1.f GDPR).</p>
+                  <p className="mb-4"><strong>Conservación:</strong> Se conservarán durante no más tiempo del necesario para mantener el fin del tratamiento o existan prescripciones legales que dictaminen su custodia.</p>
+                  <p className="mb-4"><strong>Derechos:</strong> Usted tiene derecho a retirar el consentimiento, acceder, rectificar, portar y suprimir sus datos, así como la limitación u oposición a su tratamiento. Puede ejercer estos derechos enviando un correo a <strong>info@grupovitalicio.es</strong> o <strong>TGIRALDO@GRUPOVITALICIO.ES</strong>.</p>
+                  <p className="mb-4"><strong>Carácter Obligatorio:</strong> El tratamiento de estos datos es necesario para prestarle un servicio óptimo. Al firmar este documento, usted garantiza que los datos facilitados son veraces y se compromete a la confidencialidad absoluta de la información de los clientes del grupo.</p>
+                  <p className="font-bold mt-10 p-4 bg-red-50 rounded-2xl border border-red-100">Como colaborador externo, usted asume la responsabilidad legal de proteger la privacidad de cada expediente que gestione a través de este portal.</p>
+               </div>
+
+               <div className="flex flex-col items-center gap-6">
+                  <div className="w-full max-w-sm">
+                     <p className="text-center font-bold text-gray-500 mb-2 uppercase text-xs">Introduzca su DNI para validar la firma</p>
+                     <input 
+                        type="text" 
+                        value={dniInput} 
+                        onChange={e => setDniInput(e.target.value.toUpperCase())} 
+                        placeholder="DNI / NIE" 
+                        className={`${UI_CONFIG.inputClass} text-center font-black tracking-widest`} 
+                     />
+                  </div>
+                  <p className="text-red-600 font-bold text-center">Debe introducir su DNI y firmar para poder empezar a trabajar.</p>
+                  <SignaturePad onSave={handleSignPrivacy} onCancel={() => setUser(null)} />
+               </div>
+            </div>
          </div>
       </div>
     );
@@ -246,11 +291,16 @@ const App: React.FC = () => {
   return (
     <Layout 
       user={user} 
-      onLogout={() => { setUser(null); localStorage.removeItem('gv_current_user'); }} 
+      onLogout={handleLogout} 
       activeTab={activeTab} 
       setActiveTab={setActiveTab} 
       viewingSellerName={allUsers.find(u => u.id === selectedSellerId)?.name}
-      onExitExpediente={() => { setSelectedSellerId(null); setActiveTab('admin-sellers'); }}
+      onExitExpediente={() => { 
+        if(user.role === UserRole.ADMIN) {
+          setSelectedSellerId(null); 
+          setActiveTab('admin-sellers'); 
+        }
+      }}
     >
       
       {/* --- DASHBOARD ADMIN --- */}
@@ -265,13 +315,13 @@ const App: React.FC = () => {
               <div className="bg-white p-10 rounded-[3rem] shadow-xl border-l-[12px] border-[#a12d34]">
                  <h3 className="text-xl font-bold mb-6 flex items-center gap-3">📋 Últimos Movimientos <span className="text-[10px] bg-red-100 text-[#a12d34] px-2 py-1 rounded">Bitácora en Vivo</span></h3>
                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4">
-                    {logs.slice(0, 20).map(log => (
+                    {logs.slice(0, 50).map(log => (
                        <div key={log.id} className="p-4 bg-slate-50 rounded-2xl border flex justify-between items-start">
                           <div>
                              <p className="font-bold text-sm text-gray-700">{log.description}</p>
                              <p className="text-[10px] text-gray-400 font-bold uppercase">{log.authorName} • {log.action}</p>
                           </div>
-                          <p className="text-[9px] font-black text-gray-400">{log.timestamp.split(',')[1]}</p>
+                          <p className="text-[9px] font-black text-gray-400">{log.timestamp}</p>
                        </div>
                     ))}
                  </div>
@@ -303,7 +353,7 @@ const App: React.FC = () => {
                        <div className="w-20 h-20 bg-red-50 rounded-[2.2rem] flex items-center justify-center text-3xl font-bold text-[#a12d34]">{s.name.charAt(0)}</div>
                        <div>
                           <h3 className="text-2xl font-bold text-gray-800">{s.name}</h3>
-                          <p className="text-senior text-gray-400 font-medium">{s.email}</p>
+                          <p className="text-senior text-gray-400 font-medium">{s.email} {s.dni && `• DNI: ${s.dni}`}</p>
                        </div>
                     </div>
                     <div className="flex gap-4">
@@ -338,14 +388,17 @@ const App: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                      {driveFiles.map(file => (
                         <div key={file.id} className="bg-white p-6 rounded-[2.5rem] shadow-lg border-2 border-transparent hover:border-[#a12d34]/20 transition-all flex items-center gap-4 group">
-                           <div onClick={() => setPreviewFile(file)} className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center text-4xl cursor-pointer overflow-hidden border">
+                           <div onClick={() => handleOpenPreview(file)} className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center text-4xl cursor-pointer overflow-hidden border">
                               {file.mimeType.includes('image') ? <img src={file.thumbnailLink} className="w-full h-full object-cover" /> : '📄'}
                            </div>
                            <div className="flex-1 min-w-0">
                               <p className="font-bold text-gray-800 truncate">{file.name}</p>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase">{file.mimeType.split('/')[1]}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase">{file.mimeType.split('.')[file.mimeType.split('.').length-1] || file.mimeType.split('/')[1]}</p>
                            </div>
-                           <button onClick={() => handleDeleteFile(file.id, file.name)} className="opacity-0 group-hover:opacity-100 p-4 text-red-500 text-xl transition-all">🗑️</button>
+                           <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                              <button onClick={() => handleOpenPreview(file)} className="p-2 text-blue-500 text-xl">👁️</button>
+                              <button onClick={() => handleDeleteFile(file.id, file.name)} className="p-2 text-red-500 text-xl">🗑️</button>
+                           </div>
                         </div>
                      ))}
                      {driveFiles.length === 0 && <p className="text-gray-400 font-bold col-span-2 py-20 text-center">No hay archivos en este expediente.</p>}
@@ -405,28 +458,39 @@ const App: React.FC = () => {
       {/* --- MODALES --- */}
       {previewFile && (
          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex flex-col p-6">
-            <div className="flex justify-between items-center mb-6">
-               <h3 className="text-white text-2xl font-bold truncate">{previewFile.name}</h3>
-               <button onClick={() => setPreviewFile(null)} className="text-white text-6xl leading-none">×</button>
+            <div className="flex justify-between items-center mb-6 px-4">
+               <div className="flex flex-col">
+                  <h3 className="text-white text-2xl font-bold truncate max-w-lg">{previewFile.name}</h3>
+                  <p className="text-gray-400 text-xs font-bold uppercase">Previsualización Segura de Grupo Vitalicio</p>
+               </div>
+               <button onClick={() => setPreviewFile(null)} className="text-white text-6xl leading-none transition-transform hover:rotate-90">×</button>
             </div>
-            <div className="flex-1 bg-white rounded-[3rem] overflow-hidden shadow-2xl">
+            <div className="flex-1 bg-white rounded-[3rem] overflow-hidden shadow-2xl relative">
                {previewFile.mimeType.includes('pdf') ? (
-                  <iframe src={previewFile.webViewLink.replace('/view', '/preview')} className="w-full h-full border-none" />
+                  <iframe 
+                    src={`${previewFile.webViewLink.replace('/view', '/preview')}?autoplay=1`} 
+                    className="w-full h-full border-none" 
+                    title="Visor PDF"
+                  />
                ) : previewFile.mimeType.includes('image') ? (
-                  <div className="w-full h-full flex items-center justify-center p-10">
-                     <img src={previewFile.thumbnailLink.replace('=s220', '=s2000')} className="max-w-full max-h-full object-contain shadow-2xl rounded-2xl" />
+                  <div className="w-full h-full flex items-center justify-center p-4 md:p-10 bg-slate-50">
+                     <img 
+                        src={previewFile.thumbnailLink.replace('=s220', '=s2000')} 
+                        alt={previewFile.name}
+                        className="max-w-full max-h-full object-contain shadow-2xl rounded-2xl border-4 border-white" 
+                     />
                   </div>
                ) : (
-                  <div className="flex flex-col items-center justify-center h-full gap-6">
+                  <div className="flex flex-col items-center justify-center h-full gap-6 bg-slate-50">
                      <span className="text-9xl">📁</span>
-                     <p className="text-2xl font-bold text-gray-400">Tipo de archivo no visualizable directamente.</p>
-                     <button onClick={() => window.open(previewFile.webViewLink, '_blank')} className="bg-[#a12d34] text-white px-10 py-4 rounded-full font-bold">Abrir en Google Drive</button>
+                     <p className="text-2xl font-bold text-gray-500">Este tipo de archivo requiere Google Drive.</p>
+                     <button onClick={() => window.open(previewFile.webViewLink, '_blank')} className="bg-[#a12d34] text-white px-10 py-4 rounded-full font-bold shadow-xl">Abrir Externamente</button>
                   </div>
                )}
             </div>
             <div className="mt-8 flex justify-center gap-6">
-               <button onClick={() => handleDeleteFile(previewFile.id, previewFile.name)} className="bg-red-600 text-white px-12 py-4 rounded-full font-bold shadow-xl">Eliminar Archivo</button>
-               <button onClick={() => window.open(previewFile.webViewLink, '_blank')} className="bg-blue-600 text-white px-12 py-4 rounded-full font-bold shadow-xl">Expandir ↗</button>
+               <button onClick={() => handleDeleteFile(previewFile.id, previewFile.name)} className="bg-red-600 text-white px-12 py-4 rounded-full font-bold shadow-xl active:scale-95 transition-all">Eliminar</button>
+               <button onClick={() => window.open(previewFile.webViewLink, '_blank')} className="bg-blue-600 text-white px-12 py-4 rounded-full font-bold shadow-xl active:scale-95 transition-all">Ver en Drive ↗</button>
             </div>
          </div>
       )}
@@ -473,7 +537,6 @@ const App: React.FC = () => {
   );
 };
 
-// ... DrivePickerModal (se mantiene igual) ...
 const DrivePickerModal: React.FC<{ 
   googleToken: string | null; 
   onCancel: () => void; 
