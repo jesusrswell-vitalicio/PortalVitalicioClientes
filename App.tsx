@@ -6,7 +6,7 @@ import { UI_CONFIG } from './constants';
 import SignaturePad from './components/SignaturePad';
 import { driveService, DriveFolder } from './services/driveService';
 
-// IMPORTANTE: Para producción, este ID debe tener las URLs de origen autorizadas en Google Console
+// ID DE CLIENTE OFICIAL PROPORCIONADO
 const GOOGLE_CLIENT_ID = '483714227791-od4sq0uq140cdtmvr7heq0qt3q89p74u.apps.googleusercontent.com';
 
 const ADMIN_EMAIL = 'jmartinez@grupovitalicio.es';
@@ -73,29 +73,37 @@ const App: React.FC = () => {
   const handleDriveConnection = () => {
     const google = (window as any).google;
     if (!google?.accounts?.oauth2) {
-        alert("El sistema de Google no está disponible. Por favor, recargue la página.");
+        alert("El sistema de Google se está cargando. Por favor, espere 2 segundos y vuelva a intentarlo.");
         return;
     }
 
     setDriveSyncing(true);
-    const client = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly',
-        ux_mode: 'popup',
-        callback: (response: any) => {
-            setDriveSyncing(false);
-            if (response.access_token) {
-                setGoogleToken(response.access_token);
-                localStorage.setItem('gv_token', response.access_token);
-                setShowDrivePicker(true);
-            }
-        },
-        error_callback: (err: any) => {
-            setDriveSyncing(false);
-            alert("Error al conectar con Google. Revise que la URL esté autorizada.");
-        }
-    });
-    client.requestAccessToken({ prompt: 'consent' });
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly',
+          ux_mode: 'popup',
+          callback: (response: any) => {
+              setDriveSyncing(false);
+              if (response.access_token) {
+                  setGoogleToken(response.access_token);
+                  localStorage.setItem('gv_token', response.access_token);
+                  setShowDrivePicker(true);
+              } else if (response.error) {
+                  console.error("GSI Error:", response.error);
+                  alert("Error al conectar con Google. Compruebe los permisos.");
+              }
+          },
+          error_callback: (err: any) => {
+              setDriveSyncing(false);
+              alert("Error de red con Google Identity Services.");
+          }
+      });
+      client.requestAccessToken({ prompt: 'consent' });
+    } catch (e) {
+      setDriveSyncing(false);
+      console.error("Critical GSI Auth Error:", e);
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -117,7 +125,7 @@ const App: React.FC = () => {
 
   const handleCreateSeller = async (name: string, email: string) => {
     if (!mainDriveFolder || !googleToken) {
-      alert("Primero debe vincular Google Drive.");
+      alert("Primero debe vincular una carpeta raíz de Google Drive.");
       return;
     }
     setIsProcessing(true);
@@ -134,7 +142,7 @@ const App: React.FC = () => {
       };
       setAllUsers(prev => [...prev, newUser]);
       setShowAddSeller(false);
-      alert(`Vendedor ${name} creado con éxito y carpeta vinculada.`);
+      alert(`Vendedor ${name} creado con éxito. Carpeta de Drive: ${folder.id}`);
     } catch (err) {
       handleDriveError(err);
     } finally {
@@ -151,7 +159,7 @@ const App: React.FC = () => {
         : user;
 
     if (!targetUser?.driveFolderPath) {
-        alert("No hay carpeta de destino en Drive.");
+        alert("Este expediente no tiene una carpeta de Drive asignada.");
         return;
     }
 
@@ -181,7 +189,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteDoc = async (docId: string) => {
-    if (!confirm("¿Desea eliminar este archivo de forma permanente?") || !googleToken) return;
+    if (!confirm("¿Desea eliminar este archivo de forma permanente de Drive?") || !googleToken) return;
     setIsProcessing(true);
     try {
       await driveService.deleteFile(docId, googleToken);
@@ -193,7 +201,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Render Helpers
   const currentViewId = selectedSellerId || (user?.role === UserRole.SELLER ? user.id : null);
   const currentDocs = docs.filter(d => d.ownerId === currentViewId);
 
@@ -203,7 +210,7 @@ const App: React.FC = () => {
         <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl border-t-[12px] border-[#a12d34] overflow-hidden animate-slideUp">
           <div className="p-10 text-center bg-slate-50">
             <h1 className="text-4xl font-bold text-[#a12d34] tracking-tight">Grupo Vitalicio</h1>
-            <p className="mt-2 text-gray-500 font-bold uppercase text-xs tracking-widest">Portal Oficial de Acceso</p>
+            <p className="mt-2 text-gray-500 font-bold uppercase text-xs tracking-widest">Acceso Colaboradores</p>
           </div>
           <form onSubmit={handleLogin} className="p-10 space-y-6">
             <div className="space-y-4">
@@ -211,7 +218,7 @@ const App: React.FC = () => {
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña" className={UI_CONFIG.inputClass} required />
             </div>
             {loginError && <p className="text-red-600 font-bold text-center text-senior">{loginError}</p>}
-            <button type="submit" className="w-full bg-[#a12d34] text-white py-6 rounded-3xl font-bold text-2xl shadow-xl active:scale-95 transition-all">ENTRAR AHORA</button>
+            <button type="submit" className="w-full bg-[#a12d34] text-white py-6 rounded-3xl font-bold text-2xl shadow-xl active:scale-95 transition-all">ENTRAR AL PORTAL</button>
           </form>
         </div>
       </div>
@@ -221,33 +228,32 @@ const App: React.FC = () => {
   return (
     <Layout user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab} viewingSellerName={allUsers.find(u => u.id === selectedSellerId)?.name} onExitExpediente={() => { setSelectedSellerId(null); setActiveTab('admin-sellers'); }}>
       
-      {/* PANEL ADMINISTRADOR */}
       {activeTab === 'admin-dashboard' && (
         <div className="space-y-10 animate-slideUp">
-          <h2 className="text-4xl font-bold text-gray-800">Panel de Control Global</h2>
+          <h2 className="text-4xl font-bold text-gray-800">Control de Expedientes</h2>
           
           {!mainDriveFolder ? (
             <div className="bg-white p-16 rounded-[4rem] border-4 border-dashed border-[#4285F4] text-center shadow-xl">
-              <span className="text-8xl block mb-8">📂</span>
-              <h3 className="text-3xl font-bold text-gray-800 mb-4">Vincule su Google Drive</h3>
-              <p className="text-senior text-gray-500 mb-12 max-w-lg mx-auto leading-relaxed">Para organizar los documentos, necesitamos que elija una carpeta raíz en su unidad de Google Drive.</p>
+              <span className="text-8xl block mb-8">🌩️</span>
+              <h3 className="text-3xl font-bold text-gray-800 mb-4">Conecte su Google Drive</h3>
+              <p className="text-senior text-gray-500 mb-12 max-w-lg mx-auto leading-relaxed">Debe vincular su cuenta y elegir la carpeta raíz donde se guardarán todas las fichas de los vendedores.</p>
               <button onClick={handleDriveConnection} disabled={driveSyncing} className="bg-[#4285F4] text-white px-16 py-6 rounded-full font-bold text-2xl shadow-2xl hover:bg-blue-600 transition-all flex items-center gap-4 mx-auto btn-shadow">
-                {driveSyncing ? 'Conectando...' : 'VINCULAR DRIVE'}
+                {driveSyncing ? 'Abriendo Google...' : 'VINCULAR DRIVE AHORA'}
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                <div className="bg-white p-10 rounded-[3rem] shadow-lg border-l-[12px] border-blue-500">
-                  <p className="text-gray-400 font-bold uppercase text-xs mb-2 tracking-widest">Estado</p>
-                  <p className="text-2xl font-bold text-green-600">🟢 Activo</p>
-                  <button onClick={() => setShowDrivePicker(true)} className="mt-6 text-senior font-bold text-blue-500 underline uppercase tracking-widest">Cambiar Carpeta</button>
+                  <p className="text-gray-400 font-bold uppercase text-xs mb-2 tracking-widest">Google Drive</p>
+                  <p className="text-2xl font-bold text-green-600">🟢 Conectado</p>
+                  <button onClick={() => setShowDrivePicker(true)} className="mt-6 text-senior font-bold text-blue-500 underline uppercase tracking-widest">Cambiar Raíz</button>
                </div>
                <div className="bg-white p-10 rounded-[3rem] shadow-lg border-l-[12px] border-[#a12d34]">
-                  <p className="text-gray-400 font-bold uppercase text-xs mb-2 tracking-widest">Vendedores</p>
+                  <p className="text-gray-400 font-bold uppercase text-xs mb-2 tracking-widest">Asesores</p>
                   <p className="text-5xl font-bold text-gray-800">{allUsers.filter(u => u.role === UserRole.SELLER).length}</p>
                </div>
                <div className="bg-white p-10 rounded-[3rem] shadow-lg border-l-[12px] border-[#C5A059]">
-                  <p className="text-gray-400 font-bold uppercase text-xs mb-2 tracking-widest">Archivos</p>
+                  <p className="text-gray-400 font-bold uppercase text-xs mb-2 tracking-widest">Documentos</p>
                   <p className="text-5xl font-bold text-gray-800">{docs.length}</p>
                </div>
             </div>
@@ -255,12 +261,11 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* LISTADO DE VENDEDORES */}
       {activeTab === 'admin-sellers' && (
         <div className="space-y-8 animate-slideUp">
           <div className="flex justify-between items-center">
-             <h2 className="text-4xl font-bold text-gray-800">Vendedores Externos</h2>
-             <button onClick={() => setShowAddSeller(true)} className="bg-[#C5A059] text-white px-10 py-4 rounded-3xl font-bold shadow-xl hover:bg-[#b08e4d]">+ Nuevo Vendedor</button>
+             <h2 className="text-4xl font-bold text-gray-800">Gestión de Vendedores</h2>
+             <button onClick={() => setShowAddSeller(true)} className="bg-[#C5A059] text-white px-10 py-4 rounded-3xl font-bold shadow-xl hover:bg-[#b08e4d]">+ Nuevo Alta</button>
           </div>
           <div className="grid grid-cols-1 gap-6">
              {allUsers.filter(u => u.role === UserRole.SELLER).map(s => (
@@ -273,7 +278,7 @@ const App: React.FC = () => {
                       </div>
                    </div>
                    <div className="flex gap-4">
-                      <button onClick={() => { setSelectedSellerId(s.id); setActiveTab('dashboard'); }} className="bg-[#a12d34] text-white px-10 py-4 rounded-3xl font-bold text-senior shadow-lg btn-shadow">VER EXPEDIENTE</button>
+                      <button onClick={() => { setSelectedSellerId(s.id); setActiveTab('dashboard'); }} className="bg-[#a12d34] text-white px-10 py-4 rounded-3xl font-bold text-senior shadow-lg btn-shadow">ABRIR EXPEDIENTE</button>
                    </div>
                 </div>
              ))}
@@ -281,15 +286,14 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* VISTA DE DOCUMENTOS / FOTOS (Vendedor o Admin visualizando) */}
       {(activeTab === 'docs' || activeTab === 'photos') && (
         <div className="space-y-10 animate-slideUp">
            <div className="bg-white p-16 rounded-[4rem] border-4 border-dashed border-slate-200 text-center hover:border-[#a12d34]/30 transition-all shadow-sm">
               <span className="text-7xl block mb-6">{activeTab === 'docs' ? '📄' : '📸'}</span>
-              <h3 className="text-3xl font-bold mb-4">{activeTab === 'docs' ? 'Subir Documento (PDF)' : 'Añadir Fotos'}</h3>
-              <p className="text-senior text-gray-400 mb-10">Seleccione el archivo de su dispositivo para guardarlo en Drive.</p>
+              <h3 className="text-3xl font-bold mb-4">{activeTab === 'docs' ? 'Subir Contrato o Acta' : 'Subir Reportaje Fotográfico'}</h3>
+              <p className="text-senior text-gray-400 mb-10">Los archivos se guardarán directamente en la carpeta de Drive del vendedor.</p>
               <label className="bg-[#a12d34] text-white px-16 py-6 rounded-full font-bold text-2xl cursor-pointer inline-block shadow-2xl btn-shadow">
-                 {isProcessing ? 'SUBIENDO...' : 'ELEGIR ARCHIVO'}
+                 {isProcessing ? 'SINCRONIZANDO...' : 'ELEGIR ARCHIVO'}
                  <input type="file" className="hidden" accept={activeTab === 'docs' ? '.pdf' : 'image/*'} onChange={e => handleFileUpload(e, activeTab === 'docs' ? 'PDF' : 'IMAGE')} disabled={isProcessing} />
               </label>
            </div>
@@ -298,13 +302,13 @@ const App: React.FC = () => {
               {currentDocs.filter(d => activeTab === 'docs' ? d.type === 'PDF' : d.type === 'IMAGE').map(doc => (
                 <div key={doc.id} className="bg-white rounded-[3rem] overflow-hidden shadow-xl border border-gray-100 flex flex-col group hover:-translate-y-2 transition-all">
                    <div className="h-60 bg-slate-100 flex items-center justify-center relative overflow-hidden">
-                      {doc.type === 'IMAGE' ? <img src={doc.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> : <span className="text-8xl">📕</span>}
+                      {doc.type === 'IMAGE' ? <img src={doc.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> : <span className="text-8xl">📑</span>}
                       <button onClick={() => handleDeleteDoc(doc.id)} className="absolute top-6 right-6 bg-white/90 p-4 rounded-full text-red-500 shadow-xl opacity-0 group-hover:opacity-100 transition-all">🗑️</button>
                    </div>
                    <div className="p-8">
                       <p className="font-bold text-xl text-gray-800 truncate mb-6">{doc.name}</p>
                       <div className="flex justify-between items-center border-t pt-6">
-                         <button onClick={() => window.open(doc.url, '_blank')} className="text-senior font-bold text-[#a12d34] underline">Ver en Drive ↗</button>
+                         <button onClick={() => window.open(doc.url, '_blank')} className="text-senior font-bold text-[#a12d34] underline">Ver en Drive</button>
                          <span className="text-xs font-bold text-gray-400 uppercase">{doc.uploadDate}</span>
                       </div>
                    </div>
@@ -314,26 +318,24 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL NUEVO VENDEDOR */}
       {showAddSeller && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-6">
            <div className="bg-white w-full max-w-lg rounded-[4rem] p-12 shadow-2xl animate-slideUp">
-              <h3 className="text-3xl font-bold text-center mb-10">Alta de Vendedor</h3>
+              <h3 className="text-3xl font-bold text-center mb-10">Alta de Nuevo Asesor</h3>
               <div className="space-y-6">
-                 <input id="sellerName" type="text" placeholder="Nombre Completo" className={UI_CONFIG.inputClass} />
-                 <input id="sellerEmail" type="email" placeholder="Correo Electrónico" className={UI_CONFIG.inputClass} />
+                 <input id="sellerName" type="text" placeholder="Nombre y Apellidos" className={UI_CONFIG.inputClass} />
+                 <input id="sellerEmail" type="email" placeholder="Email @corporativo" className={UI_CONFIG.inputClass} />
               </div>
               <div className="flex gap-6 mt-12">
-                 <button onClick={() => setShowAddSeller(false)} className="flex-1 text-senior font-bold text-gray-400">Cancelar</button>
+                 <button onClick={() => setShowAddSeller(false)} className="flex-1 text-senior font-bold text-gray-400">Cerrar</button>
                  <button onClick={() => handleCreateSeller((document.getElementById('sellerName') as HTMLInputElement).value, (document.getElementById('sellerEmail') as HTMLInputElement).value)} className="flex-1 bg-[#a12d34] text-white py-5 rounded-3xl font-bold text-xl shadow-xl active:scale-95" disabled={isProcessing}>
-                    {isProcessing ? 'CREANDO...' : 'CONFIRMAR'}
+                    {isProcessing ? 'CREANDO...' : 'REGISTRAR'}
                  </button>
               </div>
            </div>
         </div>
       )}
 
-      {/* MODAL EXPLORADOR DE DRIVE (REAL) */}
       {showDrivePicker && (
         <DrivePickerModal 
           googleToken={googleToken} 
@@ -341,7 +343,6 @@ const App: React.FC = () => {
           onSelect={(id) => {
             setMainDriveFolder(id);
             setShowDrivePicker(false);
-            alert("Carpeta raíz configurada correctamente.");
           }} 
         />
       )}
@@ -356,6 +357,7 @@ const DrivePickerModal: React.FC<{
 }> = ({ googleToken, onCancel, onSelect }) => {
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [currentId, setCurrentId] = useState('root');
+  const [history, setHistory] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -367,29 +369,60 @@ const DrivePickerModal: React.FC<{
       .finally(() => setLoading(false));
   }, [googleToken, currentId]);
 
+  const handleBack = () => {
+    const prev = history.pop();
+    if (prev) {
+        setCurrentId(prev);
+        setHistory([...history]);
+        setSelectedId(null);
+    }
+  };
+
+  const handleEnter = (folderId: string) => {
+    setHistory([...history, currentId]);
+    setCurrentId(folderId);
+    setSelectedId(null);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200] p-4">
       <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-2xl animate-slideUp">
         <div className="bg-[#4285F4] p-8 text-white">
-          <h3 className="text-3xl font-bold">Elija la Carpeta Raíz</h3>
-          <p className="text-senior opacity-90">Navegue y seleccione dónde centralizar los expedientes.</p>
+          <div className="flex justify-between items-center">
+            <h3 className="text-3xl font-bold">Explorador de Drive</h3>
+            <button onClick={onCancel} className="text-white text-2xl">×</button>
+          </div>
+          <p className="text-senior opacity-90 mt-2 tracking-wide">Navegue y elija la carpeta principal del proyecto.</p>
         </div>
         <div className="p-8">
-          <div className="bg-slate-50 border-2 border-slate-200 rounded-[2rem] h-[50vh] overflow-y-auto mb-8 p-4">
-            {loading ? <p className="text-center py-20 font-bold text-gray-400">Cargando Drive...</p> : 
-              folders.length === 0 ? <p className="text-center py-20 text-gray-400 font-bold">No hay carpetas aquí.</p> :
+          <div className="flex items-center gap-4 mb-4">
+            <button 
+              onClick={handleBack} 
+              disabled={currentId === 'root'} 
+              className={`px-4 py-2 rounded-xl font-bold text-sm ${currentId === 'root' ? 'bg-gray-100 text-gray-300' : 'bg-blue-100 text-blue-600'}`}
+            >
+              ⬅ Volver
+            </button>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Ubicación: {currentId === 'root' ? 'Mi Unidad' : 'Subcarpeta'}
+            </span>
+          </div>
+
+          <div className="bg-slate-50 border-2 border-slate-200 rounded-[2rem] h-[45vh] overflow-y-auto mb-8 p-4">
+            {loading ? <div className="flex flex-col items-center justify-center h-full gap-4"><div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div><p className="font-bold text-gray-400">Consultando Drive...</p></div> : 
+              folders.length === 0 ? <p className="text-center py-20 text-gray-400 font-bold">No se encontraron carpetas aquí.</p> :
               folders.map(f => (
-                <div key={f.id} onClick={() => setSelectedId(f.id)} className={`flex items-center gap-4 p-5 rounded-2xl cursor-pointer border-2 mb-2 transition-all ${selectedId === f.id ? 'bg-blue-50 border-blue-400' : 'bg-white border-transparent'}`}>
+                <div key={f.id} onClick={() => setSelectedId(f.id)} className={`flex items-center gap-4 p-5 rounded-2xl cursor-pointer border-2 mb-3 transition-all ${selectedId === f.id ? 'bg-blue-50 border-blue-400' : 'bg-white border-transparent hover:border-slate-200'}`}>
                   <span className="text-4xl">📁</span>
-                  <div className="flex-1 font-bold text-lg">{f.name}</div>
-                  <button onClick={(e) => { e.stopPropagation(); setCurrentId(f.id); setSelectedId(null); }} className="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold">ENTRAR</button>
+                  <div className="flex-1 font-bold text-lg text-gray-700 truncate">{f.name}</div>
+                  <button onClick={(e) => { e.stopPropagation(); handleEnter(f.id); }} className="px-4 py-2 bg-slate-100 rounded-xl text-[10px] font-black uppercase tracking-tighter hover:bg-slate-200">Entrar</button>
                 </div>
               ))
             }
           </div>
           <div className="flex gap-6">
-            <button onClick={onCancel} className="flex-1 font-bold text-gray-400">Cancelar</button>
-            <button onClick={() => selectedId && onSelect(selectedId)} disabled={!selectedId} className={`flex-1 py-5 rounded-3xl font-bold text-xl shadow-xl transition-all ${selectedId ? 'bg-blue-600 text-white active:scale-95' : 'bg-gray-200 text-gray-400'}`}>
+            <button onClick={onCancel} className="flex-1 font-bold text-gray-400 text-lg">Cancelar</button>
+            <button onClick={() => selectedId && onSelect(selectedId)} disabled={!selectedId} className={`flex-1 py-5 rounded-3xl font-bold text-xl shadow-xl transition-all ${selectedId ? 'bg-[#4285F4] text-white active:scale-95' : 'bg-gray-200 text-gray-400'}`}>
               ELEGIR ESTA CARPETA
             </button>
           </div>
