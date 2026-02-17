@@ -79,21 +79,23 @@ const DrivePickerModal: React.FC<{
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 //AQUI
-  useEffect(() => {
-  // En lugar de console.error, simplemente no hacemos nada si no hay token aún
-  if (!googleToken) return; 
-
-  driveService.fetchFolders(googleToken)
-    .then(data => {
-      setFolders(data);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error("Error al obtener carpetas:", err);
-      setLoading(false);
-    });
-}, [googleToken, showDrivePicker]); // Añade showDrivePicker a la vigilancia
-
+ useEffect(() => {
+  // Solo pedimos las carpetas si tenemos el TOKEN
+  if (googleToken) {
+    driveService.fetchFolders(googleToken)
+      .then(data => {
+        setFolders(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error al obtener carpetas:", err);
+        setLoading(false);
+      });
+  } else {
+    // Si no hay token, simplemente dejamos de cargar para que no se quede el círculo dando vueltas
+    setLoading(false);
+  }
+}, [googleToken]); // <--- AQUÍ: Asegúrate de que SOLO esté googleToken
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn">
