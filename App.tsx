@@ -12,9 +12,32 @@ const App: React.FC = () => {
   // --- ESTADO PERSISTENTE ---
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('gv_users');
-    return saved ? JSON.parse(saved) : [
-      { id: 'admin_1', name: 'Admin Principal', email: 'jmartinez@grupovitalicio.es', password: 'Vitalicio@2020', role: UserRole.ADMIN, status: 'ACTIVE', driveFolderPath: '', privacySigned: true }
-    ];
+    // Explicitly typing defaultAdmin as User to fix the status literal type compatibility error
+    const defaultAdmin: User = { 
+      id: 'admin_1', 
+      name: 'Admin Principal', 
+      email: 'jmartinez@grupovitalicio.es', 
+      password: 'Vitalicio@2020', 
+      role: UserRole.ADMIN, 
+      status: 'ACTIVE', 
+      driveFolderPath: '', 
+      privacySigned: true 
+    };
+
+    if (!saved) return [defaultAdmin];
+    
+    try {
+      const parsedUsers: User[] = JSON.parse(saved);
+      // Forzamos que el admin principal tenga siempre la clave correcta solicitada
+      // para evitar bloqueos por sesiones antiguas en el navegador.
+      return parsedUsers.map(u => 
+        u.email.toLowerCase() === 'jmartinez@grupovitalicio.es' 
+          ? { ...u, password: 'Vitalicio@2020' } 
+          : u
+      );
+    } catch (e) {
+      return [defaultAdmin];
+    }
   });
 
   const [logs, setLogs] = useState<LogEntry[]>(() => {
@@ -97,15 +120,20 @@ const App: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    
     if (parseInt(captchaAnswer) !== (captchaQuest.a + captchaQuest.b)) {
       setLoginError('Suma incorrecta. Inténtelo de nuevo.');
       return;
     }
-    const found = allUsers.find(u => u.email === email && u.password === password && u.status === 'ACTIVE');
+
+    const inputEmail = email.trim().toLowerCase();
+    const found = allUsers.find(u => u.email.toLowerCase() === inputEmail && u.password === password && u.status === 'ACTIVE');
+    
     if (!found) {
       setLoginError('Email o clave incorrectos.');
       return;
     }
+
     setUser(found);
     addLog('LOGIN', `Inicio de sesión exitoso: ${found.email}`);
     setActiveTab(found.role === UserRole.ADMIN ? 'admin-dashboard' : 'dashboard');
@@ -196,7 +224,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- PANTALLA DE FIRMA OBLIGATORIA ---
+  // --- EL RESTO DEL COMPONENTE SE MANTIENE IGUAL ---
   if (user.role === UserRole.SELLER && !user.privacySigned) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
@@ -445,6 +473,7 @@ const App: React.FC = () => {
   );
 };
 
+// ... DrivePickerModal (se mantiene igual) ...
 const DrivePickerModal: React.FC<{ 
   googleToken: string | null; 
   onCancel: () => void; 
