@@ -71,39 +71,33 @@ const INITIAL_DOCS: Document[] = [
 ];
 
 const DrivePickerModal: React.FC<{ 
-  onSelect: (id: string) => void; // Cambiado a id
+  onSelect: (id: string) => void; 
   onCancel: () => void;
-  googleToken: string | null;
+  googleToken: string | null; 
 }> = ({ onSelect, onCancel, googleToken }) => {
   const [folders, setFolders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Empieza cargando
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
- useEffect(() => {
-  // 1. Si el modal se abre y no hay token, avisamos y cerramos el cargando
-  if (!googleToken) {
-    console.warn("Intento de carga sin token de Google");
-    setLoading(false);
-    return;
-  }
+  useEffect(() => {
+    // Si no hay token, mantenemos el estado de carga o mostramos mensaje, 
+    // pero NO intentamos llamar al servicio.
+    if (!googleToken) {
+      setLoading(true);
+      return;
+    }
 
-  setLoading(true); // Forzamos estado de carga al empezar
-
-  // 2. Llamada con gestión de errores real
-  driveService.fetchFolders(googleToken)
-    .then(data => {
-      console.log("Datos recibidos de Drive:", data);
-      setFolders(data || []); 
-    })
-    .catch(err => {
-      console.error("Error capturado en el Modal:", err);
-      alert("Error de conexión con Google: Revisa los permisos.");
-    })
-    .finally(() => {
-      setLoading(false); // ESTO SE EJECUTA SIEMPRE (Pase lo que pase)
-    });
-}, [googleToken]);
-
+    // Solo cuando hay token, disparamos la búsqueda
+    driveService.fetchFolders(googleToken)
+      .then(data => {
+        setFolders(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error en modal:", err);
+        setLoading(false);
+      });
+  }, [googleToken]); // Se re-ejecuta en cuanto googleToken cambie de null a valor real
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn">
@@ -388,26 +382,20 @@ const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getIt
  
 
 const handleDriveConnection = () => {
-  // Asegúrate de que el client_id sea el completo que copiaste de la consola
   const client = (window as any).google.accounts.oauth2.initTokenClient({
-    client_id: 'C00ogjb9x.apps.googleusercontent.com', 
-    // SCOPES: Necesitamos explícitamente permisos de lectura y archivos
+    client_id: 'TU_CLIENT_ID_COMPLETO.apps.googleusercontent.com',
+    // IMPORTANTE: Estos scopes son los que permiten VER las carpetas
     scope: 'https://www.googleapis.com https://www.googleapis.com',
     callback: (response: any) => {
-      if (response.error) {
-        console.error("Error de Google:", response.error);
-        return;
+      if (response.access_token) {
+        setGoogleToken(response.access_token);
+        localStorage.setItem('gv_token', response.access_token);
+        setIsDriveConnected(true);
+        // Al poner esto en true, el Modal se abrirá y el useEffect de arriba detectará el token
+        setShowDrivePicker(true);
       }
-      setGoogleToken(response.access_token);
-      localStorage.setItem('gv_token', response.access_token);
-      setIsDriveConnected(true);
-      setShowDrivePicker(true);
     },
   });
-  client.requestAccessToken();
- };
-
-
 
 
 
