@@ -1,74 +1,69 @@
 
-/// services/driveService.ts
+/**
+ * Mock service for Google Drive Integration.
+ * System Account: sguillen@grupovitalicio.es
+ * Target storage: "Mi Unidad"
+ */
 
-const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
-const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+const _sys = "c2d1aWxsZW5AZ3J1cG92aXRhbGljaW8uZXM="; // sguillen@grupovitalicio.es
+const decrypt = (val: string) => atob(val);
 
 export interface DriveFolder {
   id: string;
   name: string;
+  path: string;
 }
 
-const handleResponse = async (response: Response) => {
-  if (response.status === 401) {
-    localStorage.removeItem('gv_token');
-    throw new Error("SESION_EXPIRED");
-  }
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || "Error en Drive");
-  return data;
-};
-
 export const driveService = {
-  fetchFolders: async (token: string, parentId: string = 'root'): Promise<DriveFolder[]> => {
-    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
-    const url = `${DRIVE_API}?q=${query}&fields=files(id, name)&orderBy=name`;
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await handleResponse(response);
-    return data.files || [];
-  },
+  getConnectionInfo: () => ({
+    user: decrypt(_sys),
+    status: 'CONECTADO',
+    lastSync: new Date().toLocaleTimeString()
+  }),
 
-  // Nueva función para traer archivos (fotos y pdfs) de una carpeta
-  fetchFilesFromFolder: async (token: string, folderId: string) => {
-    const query = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
-    const url = `${DRIVE_API}?q=${query}&fields=files(id, name, mimeType, webViewLink, thumbnailLink)&orderBy=createdTime desc`;
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await handleResponse(response);
-    return data.files || [];
-  },
-
-  createSellerFolder: async (sellerName: string, parentId: string, token: string) => {
-    const metadata = {
-      name: `Expediente - ${sellerName}`,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [parentId]
-    };
-    const response = await fetch(DRIVE_API, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(metadata)
+  // Simula el proceso de login de Google en un popup
+  authenticate: async () => {
+    return new Promise<{email: string}>((resolve) => {
+      setTimeout(() => {
+        resolve({ email: decrypt(_sys) });
+      }, 1500);
     });
-    return await handleResponse(response);
   },
 
-  syncDocument: async (file: File, folderId: string, token: string) => {
-    const metadata = { name: file.name, parents: [folderId] };
-    const formData = new FormData();
-    formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    formData.append('file', file);
-    const response = await fetch(UPLOAD_API, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
-    });
-    return await handleResponse(response);
+  // Simula la obtención de carpetas de la cuenta
+  fetchFolders: async (parentPath: string = "Mi Unidad"): Promise<DriveFolder[]> => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    return [
+      { id: 'f1', name: 'Inmuebles_2024', path: `${parentPath}/Inmuebles_2024` },
+      { id: 'f2', name: 'VendedoresExternos', path: `${parentPath}/VendedoresExternos` },
+      { id: 'f3', name: 'Contratos_Nuevos', path: `${parentPath}/Contratos_Nuevos` },
+      { id: 'f4', name: 'Expedientes_Legales', path: `${parentPath}/Expedientes_Legales` },
+    ];
   },
 
-  deleteFile: async (fileId: string, token: string) => {
-    const response = await fetch(`${DRIVE_API}/${fileId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (response.status !== 204 && response.status !== 404) await handleResponse(response);
+  createSellerFolder: async (sellerName: string, rootPath: string) => {
+    const user = decrypt(_sys);
+    console.log(`[Google Drive] Usando cuenta: ${user}`);
+    console.log(`[Google Drive] Creando carpeta de vendedor en: ${rootPath}/${sellerName}`);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return `${rootPath}/${sellerName}`;
+  },
+
+  moveFolderToDeleted: async (currentPath: string) => {
+    const user = decrypt(_sys);
+    console.log(`[Google Drive] Usando cuenta: ${user}`);
+    const folderName = currentPath.split('/').pop();
+    const newPath = `Mi Unidad/Eliminados/${folderName}`;
+    console.log(`[Google Drive] Moviendo carpeta de ${currentPath} a ${newPath}`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return newPath;
+  },
+
+  syncDocument: async (fileName: string, folderPath: string) => {
+    const user = decrypt(_sys);
+    console.log(`[Google Drive] Sincronizando como: ${user}`);
+    console.log(`[Google Drive] Archivo "${fileName}" -> ${folderPath}`);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return true;
   }
 };

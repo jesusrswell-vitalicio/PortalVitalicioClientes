@@ -8,12 +8,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password?: string;
-  dni?: string;
+  dni?: string; // Documento Nacional de Identidad o Pasaporte
   role: UserRole;
   status: 'ACTIVE' | 'DELETED';
   driveFolderPath: string;
-  privacySigned: boolean;
+  privacySigned?: boolean;
 }
 
 export interface Document {
@@ -21,17 +20,15 @@ export interface Document {
   name: string;
   type: 'PDF' | 'IMAGE' | 'CONTRACT';
   url: string;
-  thumbnail?: string;
   status: 'PENDING' | 'SIGNED' | 'APPROVED';
   uploadDate: string;
   ownerId: string;
   folderPath: string;
 }
 
-export interface Note {
+export interface Comment {
   id: string;
   sellerId: string;
-  authorId: string;
   authorName: string;
   text: string;
   timestamp: string;
@@ -39,9 +36,9 @@ export interface Note {
 
 export interface LogEntry {
   id: string;
-  sellerId?: string;
-  action: 'LOGIN' | 'UPLOAD' | 'DELETE' | 'PASSWORD_CHANGE' | 'PRIVACY_SIGN' | 'NOTE_ADD';
-  description: string;
+  sellerId: string;
+  action: 'UPLOAD' | 'DELETE' | 'SIGNATURE' | 'PRIVACY_ACCEPTANCE';
+  fileName: string;
   authorName: string;
   timestamp: string;
 }
