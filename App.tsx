@@ -1,3 +1,4 @@
+tsx
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User, UserRole, Document, Comment, LogEntry } from './types';
@@ -7,158 +8,190 @@ import SignaturePad from './components/SignaturePad';
 import { driveService, DriveFolder } from './services/driveService';
 
 // --- CONFIGURACIÓN SUPABASE ---
-const supabaseUrl = 'https://nxgsszsdouzpstsdiloi.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54Z3NzenNkb3V6cHN0c2RpbG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzYwMjcsImV4cCI6MjA4ODIxMjAyN30.99NKnWQmbvv8ssVLQ9ASvAQqJ9QmBL6647VH_anAf_E';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const PRIVACY_POLICY_TEXT = `...`; // (Mantén aquí tu texto legal)
+const ADMIN_EMAIL = 'jmartinez@grupovitalicio.es';
+const PRIVACY_POLICY_TEXT = `... (Tu texto legal completo aquí) ...`;
+
+// --- COMPONENTES AUXILIARES ---
+const DrivePickerModal: React.FC<{ onSelect: (path: string) => void; onCancel: () => void }> = ({ onSelect, onCancel }) => {
+  const [folders, setFolders] = useState<DriveFolder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  useEffect(() => { driveService.fetchFolders().then(data => { setFolders(data); setLoading(false); }); }, []);
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-6">
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn">
+        <div className="bg-[#4285F4] p-8 text-white flex justify-between items-center">
+          <div><h3 className="text-2xl font-bold">Seleccionar Carpeta Raíz</h3><p className="text-sm opacity-90 mt-1">Google Drive: sguillen@grupovitalicio.es</p></div>
+        </div>
+        <div className="p-8">
+          <div className="bg-slate-50 border rounded-2xl h-80 overflow-y-auto mb-6">
+            {loading ? <div className="h-full flex items-center justify-center">Cargando...</div> : 
+              <div className="p-2">{folders.map(f => (
+                <button key={f.id} onClick={() => setSelectedFolder(f.path)} className={`w-full text-left p-4 rounded-xl flex items-center gap-4 ${selectedFolder === f.path ? 'bg-blue-50 border-blue-200 border-2' : ''}`}>
+                  <span>📁</span><div><p className="font-bold">{f.name}</p><p className="text-[10px] text-gray-400">{f.path}</p></div>
+                </button>
+              ))}</div>}
+          </div>
+          <div className="flex gap-4">
+            <button onClick={onCancel} className="flex-1 py-4 font-bold text-gray-400">Cancelar</button>
+            <button onClick={() => selectedFolder && onSelect(selectedFolder)} disabled={!selectedFolder} className="flex-1 py-4 bg-[#4285F4] text-white rounded-2xl font-bold">Establecer Raíz</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ... (Aquí incluirías los componentes AuditModal, CommentsSection y ActivityLog tal cual los tenías en tus partes 3 y 4) ...
 
 const App: React.FC = () => {
-  // Estados de Usuario y Sesión
+  // --- ESTADOS PRINCIPALES ---
   const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Estados de Datos (Ahora vienen de Supabase)
-  const [docs, setDocs] = useState<Document[]>([]);
+  // Datos desde Supabase
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [docs, setDocs] = useState<Document[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  
-  // Estados de UI
-  const [activeTab, setActiveTab] = useState('dashboard');
+
+  // UI States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [captchaValue, setCaptchaValue] = useState('');
+  const [userCaptchaInput, setUserCaptchaInput] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAddSeller, setShowAddSeller] = useState(false);
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [showDrivePicker, setShowDrivePicker] = useState(false);
+  const [showPrivacySignature, setShowPrivacySignature] = useState(false);
+  const [userDniInput, setUserDniInput] = useState('');
+  const [mainDriveFolder, setMainDriveFolder] = useState(() => localStorage.getItem('gv_main_drive') || '');
+  const [isDriveConnected, setIsDriveConnected] = useState(() => localStorage.getItem('gv_drive_connected') === 'true');
 
-  // 1. Cargar sesión inicial y datos
+  // --- LÓGICA DE AUTENTICACIÓN (SUPABASE) ---
   useEffect(() => {
-    const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    generateCaptcha();
+    // Suscripción al estado de Auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        await fetchUserData(session.user.id);
+        await loadUserData(session.user.id);
+      } else {
+        setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
-    };
-    initSession();
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserData = async (userId: string) => {
+  const loadUserData = async (userId: string) => {
+    setLoading(true);
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (profile) {
-      setUser(profile as User);
-      if (profile.role === 'ADMIN') {
-        fetchAdminData();
-      } else {
-        fetchSellerData(userId);
-      }
+      const formattedUser: User = { ...profile, role: profile.role as UserRole, privacySigned: profile.privacy_signed, driveFolderPath: profile.drive_folder_path };
+      setUser(formattedUser);
+      // Cargar datos globales
+      await refreshGlobalData();
     }
+    setLoading(false);
   };
 
-  const fetchAdminData = async () => {
-    const { data: users } = await supabase.from('profiles').select('*');
-    const { data: allDocs } = await supabase.from('documents').select('*');
-    const { data: allLogs } = await supabase.from('activity_logs').select('*');
-    if (users) setAllUsers(users);
-    if (allDocs) setDocs(allDocs);
-    if (allLogs) setLogs(allLogs);
+  const refreshGlobalData = async () => {
+    const { data: profiles } = await supabase.from('profiles').select('*');
+    const { data: documents } = await supabase.from('documents').select('*');
+    if (profiles) setAllUsers(profiles.map(p => ({ ...p, role: p.role as UserRole, privacySigned: p.privacy_signed, driveFolderPath: p.drive_folder_path })));
+    if (documents) setDocs(documents);
   };
 
-  const fetchSellerData = async (sellerId: string) => {
-    const { data: sDocs } = await supabase.from('documents').select('*').eq('owner_id', sellerId);
-    const { data: sComments } = await supabase.from('comments').select('*').eq('seller_id', sellerId);
-    if (sDocs) setDocs(sDocs);
-    if (sComments) setComments(sComments);
-  };
+  const generateCaptcha = () => setCaptchaValue(Math.floor(1000 + Math.random() * 9000).toString());
 
-  // 2. Lógica de Autenticación
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (userCaptchaInput !== captchaValue) { setLoginError('Captcha incorrecto'); generateCaptcha(); return; }
     
-    if (error) {
-      alert('Error de acceso: ' + error.message);
-    } else if (data.user) {
-      await fetchUserData(data.user.id);
+    setIsProcessing(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { setLoginError('Acceso denegado: ' + error.message); generateCaptcha(); }
+    setIsProcessing(false);
+  };
+
+  const handleLogout = () => supabase.auth.signOut();
+
+  const handleAddSeller = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    // 1. Crear en Supabase Auth
+    const { data, error } = await supabase.auth.signUp({ 
+        email: email, 
+        password: password, 
+        options: { data: { name: 'Nombre Vendedor', role: 'SELLER' } } 
+    });
+    if (data.user) {
+        const drivePath = await driveService.createSellerFolder('Nombre Vendedor', mainDriveFolder);
+        await supabase.from('profiles').update({ drive_folder_path: drivePath }).eq('id', data.user.id);
+        await refreshGlobalData();
+        setShowAddSeller(false);
     }
     setIsProcessing(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setDocs([]);
-  };
-
-  // 3. Gestión de Documentos y Logs
-  const addLog = async (sellerId: string, action: string, fileName: string) => {
-    const newLog = {
-      seller_id: sellerId,
-      action,
-      file_name: fileName,
-      author_name: user?.name || 'Sistema',
-      author_id: user?.id,
-      timestamp: new Date().toLocaleString('es-ES')
-    };
-    await supabase.from('activity_logs').insert([newLog]);
-    // Recargar logs localmente
-    fetchAdminData();
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'PDF') => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    setIsProcessing(true);
-    // 1. Simulación o subida real a Drive aquí (tu driveService)
-    const drivePath = user.driveFolderPath; 
-    
-    // 2. Registro en Supabase
-    const { data: newDoc, error } = await supabase.from('documents').insert([{
-      name: file.name,
-      type: type,
-      status: 'PENDING',
-      upload_date: new Date().toLocaleDateString('es-ES'),
-      owner_id: selectedSellerId || user.id,
-      folder_path: drivePath
-    }]).select().single();
-
-    if (newDoc) {
-      setDocs(prev => [...prev, newDoc as any]);
-      addLog(selectedSellerId || user.id, 'UPLOAD', file.name);
-    }
-    setIsProcessing(false);
-  };
-
-  // --- RENDERIZADO ---
-  if (loading) return <div className="flex h-screen items-center justify-center">Cargando...</div>;
+  // --- RENDERIZADO CONDICIONAL ---
+  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-[#a12d34]">GRUPO VITALICIO: Cargando...</div>;
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <form onSubmit={handleLogin} className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md">
-          <h1 className="text-3xl font-bold text-[#a12d34] mb-6 text-center">Grupo Vitalicio</h1>
-          <input type="email" placeholder="Email" className={UI_CONFIG.inputClass} value={email} onChange={e => setEmail(e.target.value)} required />
-          <input type="password" placeholder="Contraseña" className={`${UI_CONFIG.inputClass} mt-4`} value={password} onChange={e => setPassword(e.target.value)} required />
-          <button type="submit" disabled={isProcessing} className="w-full bg-[#a12d34] text-white py-4 rounded-xl mt-6 font-bold shadow-lg">
-            {isProcessing ? 'Verificando...' : 'Acceder'}
-          </button>
-        </form>
-      </div>
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+            {/* Aquí va tu diseño de Login (Parte 8) */}
+            <form onSubmit={handleLogin} className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md">
+                <h1 className="text-2xl font-bold text-[#a12d34] mb-6">Acceso Portal</h1>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={UI_CONFIG.inputClass} placeholder="Email" required />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={`${UI_CONFIG.inputClass} mt-4`} placeholder="Contraseña" required />
+                <button type="submit" disabled={isProcessing} className="w-full bg-[#a12d34] text-white py-4 rounded-xl mt-6 font-bold">
+                    {isProcessing ? 'Entrando...' : 'Acceder'}
+                </button>
+            </form>
+        </div>
     );
   }
 
-  // Vista Principal (Dashboard)
+  // --- DASHBOARD PRINCIPAL ---
+  const currentViewUser = selectedSellerId ? allUsers.find(u => u.id === selectedSellerId) : user;
+  const currentDocs = docs.filter(d => d.ownerId === (selectedSellerId || user.id));
+
   return (
-    <Layout user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab}>
-      <div className="space-y-8 animate-fadeIn">
-        {/* Aquí va el resto de tu lógica de componentes (Cards, Listas, etc.) 
-            usando el estado de 'docs', 'allUsers', etc., que ahora se alimenta de Supabase */}
-        <h2 className="text-2xl font-bold">Bienvenido, {user.name}</h2>
-        {/* ... Resto de componentes de tu App.tsx original ... */}
+    <Layout 
+      user={user} 
+      onLogout={handleLogout} 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab}
+      viewingSellerName={currentViewUser?.name}
+      onExitExpediente={() => { setSelectedSellerId(null); setActiveTab('admin-sellers'); }}
+    >
+      {/* 
+        AQUÍ PEGAS TODAS LAS VISTAS QUE ME ENVIASTE (Partes 9 a 13) 
+        - Panel Global Admin
+        - Lista de Vendedores
+        - Expedientes (Docs, Photos, Settings)
+      */}
+      <div className="p-4">
+          <h2 className="text-xl font-bold">Bienvenido, {user.name}</h2>
+          <p className="text-gray-500">Rol: {user.role}</p>
+          {/* Aquí se inyectan las pestañas dinámicamente según activeTab */}
+          {activeTab === 'admin-sellers' && (
+              /* Pega aquí el bloque de la Parte 10 */
+              <div>Contenido de Vendedores...</div>
+          )}
       </div>
+
+      {/* MODALES */}
+      {showAddSeller && ( /* Pega aquí el modal de la Parte 13 */ null )}
+      {showDrivePicker && <DrivePickerModal onSelect={(p) => setMainDriveFolder(p)} onCancel={() => setShowDrivePicker(false)} />}
     </Layout>
   );
 };
